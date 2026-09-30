@@ -3,6 +3,8 @@
 // 4 运动状态在方案声明的运动区内有 ≥ 2000×1000 空地，且瑜伽垫位于运动区内  5 多人聚会 ≥ 6 座、双人餐 ≥ 2 座
 import { ROOM, FIXED, ROUTE } from '../src/geometry.js';
 import { MODELS, STATES, resolveItems } from '../src/schemes.js';
+import { MODELS as MODELS2, STATES as STATES2 } from '../src/creative/schemes.js';
+import { resolveState, poseAll, overlap3, freeRatio, present, legsOf, facadePanels, paramsOf } from '../src/creative/rig.js';
 
 const CELL = 25;
 const results = [];
@@ -140,6 +142,132 @@ for (const model of MODELS) {
     if (st.key === 'party') check(...tag, '多人聚会餐座 ≥ 6', seats >= 6, `${seats} 座`);
     if (st.key === 'dine2') check(...tag, '双人餐餐座 ≥ 2', seats >= 2, `${seats} 座`);
   }
+}
+
+// ───────── 页面二：创意三方案 ─────────
+// 构件与宿主柜体、铰链链上的相邻板之间不算冲突
+const related = (a, b) => a.host === b.id || b.host === a.id || a.chain === b.id || b.chain === a.id
+  || (a.host && a.host === b.host && (a.kind === 'hinge' || b.kind === 'hinge'));
+const solid2 = (r) => (r.mount === 'floor' || r.mount === 'deck') && !r.soft && (!r.cover || (r.z || 0) >= 20);
+const accessZone = (it) => {
+  const { side, depth } = it.access;
+  return side === 'n' ? { x: it.x, y: it.y - depth, w: it.w, d: depth, z: 0, h: 2000 }
+    : side === 's' ? { x: it.x, y: it.y + it.d, w: it.w, d: depth, z: 0, h: 2000 }
+    : side === 'w' ? { x: it.x - depth, y: it.y, w: depth, d: it.d, z: 0, h: 2000 }
+    : { x: it.x + it.w, y: it.y, w: depth, d: it.d, z: 0, h: 2000 };
+};
+const FIXED3 = FIXED.map((f) => ({ ...f, z: 0, mount: 'floor' }));
+const metrics2 = {};
+const keys2 = STATES2.map((s) => s.key);
+
+for (const model of MODELS2.filter((m) => m.key !== 'current')) {
+  for (const st of STATES2) {
+    const items = resolveState(model, st.key);
+    const tag = [model.label, st.label];
+
+    const outside = [...items, ...FIXED].filter((r) => !rectInside(r)).map((r) => r.name);
+    check(...tag, '物体在房间内', outside.length === 0, outside.join('、'));
+
+    const solids = [...items.filter(solid2), ...FIXED3];
+    const clashes = [];
+    for (let i = 0; i < solids.length; i++) for (let j = i + 1; j < solids.length; j++)
+      if (!related(solids[i], solids[j]) && overlap3(solids[i], solids[j])) clashes.push(`${solids[i].name}×${solids[j].name}`);
+    check(...tag, '实体互不重叠（含高度）', clashes.length === 0, clashes.join('、'));
+
+    // 通行只看落地物体与地台（地台上的物体不挡地面通道）
+    const floorBlock = [...items.filter((r) => r.mount === 'floor' && (!r.cover || r.occupied)), ...FIXED];
+    const miss = route(floorBlock).filter(([, ok]) => !ok).map(([n]) => n);
+    check(...tag, `主路线净宽 ≥ ${ROUTE.clearance} 可达`, miss.length === 0, miss.length ? `不可达：${miss.join('、')}` : '');
+
+    if (st.key === 'exercise') {
+      const z = model.exerciseZone;
+      const obst = z.deck
+        ? items.filter((r) => r.mount === 'deck' && !r.cover)
+        : [...items.filter((r) => r.mount === 'floor' && !r.cover && !r.deck), ...FIXED];
+      const spot = largestClear(obst, 2000, 1000, z);
+      check(...tag, `运动区内空地 ≥ 2000×1000${z.deck ? '（台面）' : ''}`, !!spot, spot || '未找到');
+      const mat = items.find((r) => r.occupied);
+      const inZone = mat && mat.x >= z.x && mat.y >= z.y && mat.x + mat.w <= z.x + z.w && mat.y + mat.d <= z.y + z.d;
+      check(...tag, '瑜伽垫位于运动区内', !!inZone, mat ? '' : '未放瑜伽垫');
+    }
+
+    const blocked = [];
+    for (const it of items.filter((r) => r.access)) {
+      const zone = accessZone(it);
+      for (const o of solids) if (o !== it && overlap3(zone, o)) blocked.push(`${it.name}前被${o.name}占用`);
+    }
+    if (items.some((r) => r.access)) check(...tag, '门前净空', blocked.length === 0, blocked.join('、'));
+
+    const seats = items.reduce((s, r) => s + (r.seat || 0), 0);
+    if (st.key === 'party') check(...tag, '多人聚会餐座 ≥ 6', seats >= 6, `${seats} 座`);
+    if (st.key === 'dine2') check(...tag, '双人餐餐座 ≥ 2', seats >= 2, `${seats} 座`);
+    if (st.key === 'daily') metrics2[model.key] = freeRatio(items);
+    // 活动件不碰宿主柜体的门板与端板
+    const byId = new Map(items.map((r) => [r.id, r]));
+    const panelHits = [];
+    for (const it of items.filter((r) => r.host && byId.has(r.host)))
+      for (const pnl of facadePanels(byId.get(it.host))) if (overlap3(it, pnl)) panelHits.push(`${it.name}×${pnl.name}`);
+    check(...tag, '活动件不碰门板与端板', panelHits.length === 0, panelHits.join('、'));
+    // 坐姿净高
+    for (const it of items.filter((r) => r.part.headroom)) {
+      const seat = byId.get(it.part.headroom.over);
+      const gap = it.z - (seat.z + seat.h);
+      check(...tag, `坐姿净高 ≥ ${it.part.headroom.min}`, gap >= it.part.headroom.min, `${it.name}到${seat.name}顶 ${Math.round(gap)}`);
+    }
+    // 椅仓容量：每把折叠椅占 45
+    for (const it of items.filter((r) => r.shape === 'chairstack')) {
+      const cap = Math.floor(Math.min(it.w, it.d) / 45);
+      const need = Math.max(...keys2.map((k) => paramsOf(it.part, k).count || 0));
+      check(...tag, '椅仓容量够用', cap >= need, `容量 ${cap}，最多收 ${need}`);
+    }
+    // 可移动体块只能停在声明的定位点上
+    for (const it of items.filter((r) => r.part.dock)) {
+      const ok = it.part.dock.y.some((y) => Math.abs(it.y - y) < 1);
+      check(...tag, `${it.name}停在定位点`, ok, ok ? '' : `y=${Math.round(it.y)} 不在定位点 ${it.part.dock.y.join(' / ')}`);
+    }
+  }
+
+  // 扫掠冲突：按页面实际走的路径（legsOf），每段 39 点密采样；运动构件不碰静止物体，运动构件之间也不互碰
+  const sweep = [];
+  const pushOpen = [];
+  const keys = STATES2.map((s) => s.key);
+  const same = (a, b) => ['x', 'y', 'z', 'w', 'd', 'h'].every((k) => Math.abs(a[k] - b[k]) < 0.5);
+  const legs = new Map();
+  for (let i = 0; i < keys.length; i++) for (let j = 0; j < keys.length; j++) if (i !== j)
+    for (const [A, B] of legsOf(model, keys[i], keys[j])) legs.set(`${A}>${B}`, [A, B]);
+  for (const [A, B] of legs.values()) {
+    const a0 = new Map(poseAll(model, A, B, 0).map((r) => [r.id, r]));
+    const a1 = new Map(poseAll(model, A, B, 1).map((r) => [r.id, r]));
+    const both = model.parts.filter((p) => present(p, A) && present(p, B) && !p.carried);
+    const moving = new Set(both.filter((p) => !same(a0.get(p.id), a1.get(p.id))).map((p) => p.id));
+    for (let s = 1; s < 40; s++) {
+      const t = s / 40;
+      const at = poseAll(model, A, B, t).filter((r) => both.some((p) => p.id === r.id));
+      const phys = [...at.filter((r) => r.mount !== 'ceiling' && !r.cover && !r.soft), ...FIXED3];
+      const atId = new Map(at.map((r) => [r.id, r]));
+      for (const m of at.filter((r) => moving.has(r.id) && r.host && atId.has(r.host)))
+        for (const pnl of facadePanels(atId.get(m.host))) if (overlap3(m, pnl)) sweep.push(`${A}→${B} ${Math.round(t * 100)}%：${m.name}×${pnl.name}`);
+      for (const base of at.filter((r) => r.part.dock && moving.has(r.id))) {
+        const y0 = a0.get(base.id).y, y1 = a1.get(base.id).y;
+        if (!(Math.abs(base.y - y0) > 0.5 && Math.abs(base.y - y1) > 0.5)) continue; // 只看推动途中
+        for (const h of at.filter((r) => r.kind === 'hinge' && r.part.follow === base.id))
+          if (Math.abs(h.angle - paramsOf(h.part, 'daily').angle) > 0.5) pushOpen.push(`${A}→${B} ${Math.round(t * 100)}%：${h.name}未收起`);
+      }
+      for (const m of at.filter((r) => moving.has(r.id))) {
+        for (const o of phys) {
+          if (o.id === m.id || related(m, o)) continue;
+          if (moving.has(o.id) && o.id < m.id) continue; // 运动对只算一次
+          if (overlap3(m, o)) sweep.push(`${A}→${B} ${Math.round(t * 100)}%：${m.name}×${o.name}`);
+        }
+      }
+    }
+  }
+  check(model.label, '全部状态切换', `变形扫掠无碰撞（${legs.size} 段 × 39 采样）`, sweep.length === 0, [...new Set(sweep)].slice(0, 6).join('；'));
+  if (model.parts.some((p) => p.dock)) check(model.label, '全部状态切换', '推动体块时翻板已收起', pushOpen.length === 0, [...new Set(pushOpen)].slice(0, 4).join('；'));
+}
+for (const [k, v] of Object.entries(metrics2)) {
+  const m = MODELS2.find((x) => x.key === k);
+  console.log(`空置率  ${m.label} / 收起：地面 ${(v.floor * 100).toFixed(0)}%，含台面 ${(v.usable * 100).toFixed(0)}%`);
 }
 
 // 现状的家具位置由全景推测，结果只作诊断参考，不计入通过或失败

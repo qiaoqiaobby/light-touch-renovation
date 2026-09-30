@@ -6,7 +6,8 @@
     "validate": "node viz/scripts/validate.mjs",
     "build": "node viz/scripts/build.mjs",
     "lint:tokens": "node viz/scripts/lint-tokens.mjs",
-    "shots": "node viz/scripts/shots.mjs"
+    "shots": "node viz/scripts/shots.mjs",
+    "mutate": "node viz/scripts/mutate.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.28.2",

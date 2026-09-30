@@ -59,8 +59,10 @@
   /* 动效 */
   --dur: 120ms;
   --ease: ease-out;
+  --dur-transform: 600ms; /* 页面二：3D 变形件过渡 */
+  --ease-transform: ease-in-out;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  :root { --dur: 0ms; }
+  :root { --dur: 0ms; --dur-transform: 0ms; }
 }

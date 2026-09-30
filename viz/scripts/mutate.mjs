@@ -1,0 +1,43 @@
+// 变异测试（npm run mutate）。逐项人为制造违规，确认「对应的那项检查」能报错；每项结束后恢复原文件
+import { readFileSync, writeFileSync } from 'node:fs';
+import { execSync } from 'node:child_process';
+
+const FILE = 'viz/src/creative/schemes.js';
+const RIG = 'viz/src/creative/rig.js';
+const originals = { [FILE]: readFileSync(FILE, 'utf8'), [RIG]: readFileSync(RIG, 'utf8') };
+// expect：必须出现的 FAIL 行里同时包含的方案名与检查名
+const MUTATIONS = [
+  { name: '翻板撞到坐榻柜（方案四餐桌翻板铰链范围北移）', from: 'pivot: { x: 3040, z: 710 }, span: [4668, 5532]', to: 'pivot: { x: 3040, z: 710 }, span: [4200, 5064]', expect: ['方案四', '实体互不重叠'] },
+  { name: '踏步挡住西侧通道（方案五踏步抽到 x 200）', from: "states: { party: { y: 4200, mount: 'floor' } } },", to: "states: { party: { x: 200, y: 4300, mount: 'floor' } } },", expect: ['方案五', '主路线'] },
+  { name: '体块停在非定位点（方案六 P2 由 2600 改为 2900）', from: 'const P2 = { y: 2600 };', to: 'const P2 = { y: 2900 };', expect: ['方案六', '停在定位点'] },
+  { name: '体块行程上放一盏落地灯（只有扫掠检查能发现）', from: "    { id: 'sofa', name: '低矮模块沙发'", to: "    { id: 'probe', name: '变异测试落地灯', shape: 'box', x: 2900, y: 3400, w: 150, d: 150, h: 1500, mat: 'charcoal' },\n    { id: 'sofa', name: '低矮模块沙发'", expect: ['方案六', '扫掠'] },
+  { name: '聚会椅子挡住椅柜门（方案四 c6 东移到 x 2560）', from: "chair('c6', ['party'], { base: { x: 1990, y: 5550, face: 'n' } })", to: "chair('c6', ['party'], { base: { x: 2560, y: 5550, face: 'n' } })", expect: ['方案四', '门前净空'] },
+  { name: '运动区缩到放不下瑜伽垫（方案六运动区 1500 × 900）', from: 'exerciseZone: { x: 1100, y: 2050, w: 2200, d: 2150 },', to: 'exerciseZone: { x: 1100, y: 2050, w: 1500, d: 900 },', expect: ['方案六', '运动区'] },
+  // 复审在副本上发现「改回原样仍能通过」的 5 项修复，以及桌板豁免漏洞
+  { name: '去掉「先收后推」路由', file: RIG, from: "if (openFollower) return [[A, 'daily'], ['daily', B]];", to: '', expect: ['方案六', '推动体块时翻板已收起'] },
+  { name: '上翻门铰链改回门板内侧', from: 'pivot: { x: 3000, z: 2300 }, span: [3303, 3597], len: 400, thick: 18, dir: -1, side: -1,', to: 'pivot: { x: 3020, z: 2300 }, span: [3303, 3597], len: 400, thick: 18, dir: -1,', expect: ['方案四', '门板'] },
+  { name: '餐桌翻板改回 900 宽（穿端板）', from: 'pivot: { x: 3040, z: 710 }, span: [4668, 5532]', to: 'pivot: { x: 3040, z: 710 }, span: [4650, 5550]', expect: ['方案四', '端板'] },
+  { name: '方案六椅仓深度改回 180', from: "shape: 'chairstack', x: 1975, y: 4205, w: 450, d: 270", to: "shape: 'chairstack', x: 1975, y: 4205, w: 450, d: 180", expect: ['方案六', '椅仓容量'] },
+  { name: '坐榻龛顶灯带压到 z 1300', from: "z: 1435, mat: 'ledStrip'", to: "z: 1300, mat: 'ledStrip'", expect: ['方案四', '坐姿净高'] },
+  { name: '升降立柱收起时顶穿桌板（桌板豁免漏洞）', from: 'x: 2250, y: 1750, w: 100, d: 100, h: 370', to: 'x: 2250, y: 1750, w: 100, d: 100, h: 400', expect: ['方案五', '实体互不重叠'] },
+  { name: '聚会少一把椅子（方案四 c6 只在双人餐出现）', from: "chair('c6', ['party'], { base: { x: 1990, y: 5550, face: 'n' } })", to: "chair('c6', ['dine2'], { base: { x: 1990, y: 5550, face: 'n' } })", expect: ['方案四', '多人聚会餐座'] },
+];
+
+let caught = 0;
+try {
+  for (const m of MUTATIONS) {
+    const file = m.file || FILE, original = originals[file];
+    if (original.split(m.from).length !== 2) throw new Error(`定位串不唯一或不存在：${m.from.slice(0, 60)}`);
+    writeFileSync(file, original.replace(m.from, m.to));
+    let out = '';
+    try { out = execSync('node viz/scripts/validate.mjs', { encoding: 'utf8', maxBuffer: 1 << 26 }); } catch (e) { out = e.stdout; }
+    const fails = out.split('\n').filter((l) => l.startsWith('FAIL') && m.expect.every((k) => l.includes(k)));
+    console.log(`${fails.length ? '已捕获' : '未捕获'}  ${m.name}`);
+    for (const f of fails.slice(0, 2)) console.log(`    ${f.slice(0, 150)}`);
+    if (fails.length) caught++;
+    writeFileSync(file, original);
+  }
+} finally {
+  for (const [f, text] of Object.entries(originals)) writeFileSync(f, text);
+}
+console.log(`\n变异 ${MUTATIONS.length} 项：由对应检查捕获 ${caught}，漏检 ${MUTATIONS.length - caught}；原文件已恢复`);

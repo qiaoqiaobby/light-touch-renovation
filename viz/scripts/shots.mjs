@@ -1,15 +1,18 @@
 // 浏览器实测：无头 Chrome + DevTools 协议（Node 自带 WebSocket，无新增依赖）
 // 逐个切换 模型 × 使用状态 × 昼夜 × 视图 截图到 mid/shots/，汇总控制台报错与最小字号
-// 用法：node viz/scripts/shots.mjs <html 路径>
+// 用法：node viz/scripts/shots.mjs <html 路径> [basic | creative，默认 basic]
+// creative 另外借页面的测试钩子 window.__viz，定格每个方案「收起 → 多人聚会」变形的 0 / 50 / 100% 三帧
 import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { MODELS, STATES } from '../src/schemes.js';
+
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const html = resolve(process.argv[2]);
-const outDir = resolve(root, 'mid/shots');
+const kind = process.argv[3] || 'basic';
+const { MODELS, STATES } = await import(kind === 'creative' ? '../src/creative/schemes.js' : '../src/schemes.js');
+const outDir = resolve(root, 'mid/shots', kind + (process.env.GPU ? '-gpu' : ''));
 const profile = resolve(root, 'mid/chrome-profile');
 const PORT = 9333;
 const CHROME = process.env.CHROME || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
@@ -19,7 +22,9 @@ rmSync(outDir, { recursive: true, force: true });
 mkdirSync(outDir, { recursive: true });
 const chrome = spawn(CHROME, [
   '--headless=new', `--remote-debugging-port=${PORT}`, `--user-data-dir=${profile}`,
-  '--enable-unsafe-swiftshader', '--use-angle=swiftshader', '--window-size=1600,1000',
+  // 默认用软件渲染保证可复现；设环境变量 GPU=1 时改用本机显卡（D3D11），用于测真实帧耗时与环境光遮蔽效果
+  ...(process.env.GPU ? ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist'] : ['--enable-unsafe-swiftshader', '--use-angle=swiftshader']),
+  '--window-size=1600,1000',
   '--allow-file-access-from-files', 'about:blank',
 ], { stdio: 'ignore' });
 
@@ -52,7 +57,7 @@ try {
 
   const click = (bar, label) => evaluate(`(() => { const b = [...document.querySelectorAll('#${bar} button')].find((x) => x.textContent === ${JSON.stringify(label)}); if (!b || b.disabled) return false; b.click(); return true; })()`);
   const shot = async (name) => {
-    await sleep(400);
+    await sleep(kind === 'creative' ? 1000 : 400); // 页面二要等变形动画（600 ms）结束
     const { result } = await send('Page.captureScreenshot', { format: 'png' });
     writeFileSync(resolve(outDir, `${name}.png`), Buffer.from(result.data, 'base64'));
   };
@@ -74,10 +79,25 @@ try {
     }
   }
 
+  if (kind === 'creative') {
+    await click('viewBar', '透视');
+    await click('lightBar', '昼');
+    for (const m of MODELS.filter((x) => x.key !== 'current')) {
+      await click('modelBar', m.label);
+      for (const t of [0, 0.5, 1]) {
+        await evaluate(`window.__viz.seek('daily', 'party', ${t})`);
+        await shot(`anim-${m.key}-daily-party-${Math.round(t * 100)}`);
+        n++;
+      }
+      await evaluate(`window.__viz.settle('daily')`);
+    }
+  }
+  const perf = await evaluate(`JSON.stringify({ frameMs: document.body.dataset.frameMs, ao: document.body.dataset.ao, gpu: document.body.dataset.gpu })`);
   const fonts = await evaluate(`(() => { const s = new Set(); document.querySelectorAll('body *').forEach((e) => { if (e.childNodes.length && [...e.childNodes].some((c) => c.nodeType === 3 && c.textContent.trim())) s.add(parseFloat(getComputedStyle(e).fontSize)); }); return [...s].sort((a, b) => a - b); })()`);
-  const disabledCurrent = await evaluate(`(() => { document.querySelector('#modelBar button').click(); return [...document.querySelectorAll('#stateBar button')].every((b) => b.disabled); })()`);
+  const disabledCurrent = await evaluate(`(() => { [...document.querySelectorAll('#modelBar button')].find((b) => b.textContent === '现状').click(); return [...document.querySelectorAll('#stateBar button')].every((b) => b.disabled); })()`);
   console.log(`Chrome：${version.Browser}`);
   console.log(`截图：${n} 张 → ${outDir}`);
+  if (kind === 'creative') console.log(`首帧耗时与环境光遮蔽：${perf}`);
   console.log(`页面文字字号（px）：${fonts.join(', ')}；最小 ${Math.min(...fonts)}`);
   console.log(`现状下使用状态按钮全部禁用：${disabledCurrent}`);
   console.log(`控制台报错与警告：${errors.length} 条${errors.length ? '\n  ' + errors.join('\n  ') : ''}`);

@@ -4,7 +4,9 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const src = (f) => resolve(dirname(fileURLToPath(import.meta.url)), '../src', f);
-const tokens = Object.fromEntries([...readFileSync(src('tokens.css'), 'utf8').matchAll(/(--[\w-]+):\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
+// 只取每个 token 第一次出现的定义（:root 主定义），不被后面媒体查询里的覆盖值替换
+const tokens = {};
+for (const m of readFileSync(src('tokens.css'), 'utf8').matchAll(/(--[\w-]+):\s*([^;]+);/g)) if (!(m[1] in tokens)) tokens[m[1]] = m[2].trim();
 
 const lum = (hex) => {
   const c = hex.replace('#', '').match(/../g).map((h) => parseInt(h, 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
@@ -40,6 +42,12 @@ readFileSync(src('styles.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').split('
   }
 });
 results.push([raw.length === 0, `styles.css 视觉数值未引用 tokens：${raw.length} 处${raw.length ? '\n    ' + raw.join('\n    ') : ''}`]);
+
+// 页面二：变形动效 tokens 存在、时长 ≤ 600ms，且「减弱动效」时归零（DESIGN.md 第 6 节）
+const tokensRaw = readFileSync(src('tokens.css'), 'utf8');
+const dur = parseFloat(tokens['--dur-transform']);
+results.push([!Number.isNaN(dur) && dur > 0 && dur <= 600, `变形动效时长 --dur-transform = ${tokens['--dur-transform']}（要求 0–600ms）`]);
+results.push([/prefers-reduced-motion[\s\S]*--dur-transform:\s*0ms/.test(tokensRaw), '减弱动效时 --dur-transform 归零']);
 
 let pass = 0, fail = 0;
 for (const [ok, text] of results) { ok ? pass++ : fail++; console.log(`${ok ? 'PASS' : 'FAIL'}  ${text}`); }

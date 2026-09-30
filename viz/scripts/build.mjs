@@ -1,5 +1,6 @@
 // 构建：esbuild 打包 main.js（含 three.js），与 CSS 一起内联进单个离线 HTML
-// 用法：node viz/scripts/build.mjs [输出文件名时间戳，默认当前时间 YYYYMMDDHHmm]
+// 用法：node viz/scripts/build.mjs [时间戳，默认当前时间 YYYYMMDDHHmm] [basic | creative，默认 basic]
+// basic 为页面一（第一组三方案），creative 为页面二（创意三方案）
 import { build } from 'esbuild';
 import { readFileSync, writeFileSync, mkdirSync, statSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -11,9 +12,15 @@ const src = (f) => resolve(root, 'viz/src', f);
 const now = new Date();
 const pad = (n) => String(n).padStart(2, '0');
 const stamp = process.argv[2] || `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}`;
+const PAGES = {
+  basic: { dir: '', name: '客厅微改三方案' },
+  creative: { dir: 'creative/', name: '客厅创意三方案' },
+};
+const page = PAGES[process.argv[3] || 'basic'];
+if (!page) throw new Error(`未知页面：${process.argv[3]}`);
 
 const js = (await build({
-  entryPoints: [src('main.js')],
+  entryPoints: [src(page.dir + 'main.js')],
   bundle: true,
   minify: true,
   format: 'iife',
@@ -23,12 +30,12 @@ const js = (await build({
 })).outputFiles[0].text.replace(/<\/script/gi, '<\\/script');
 
 const css = readFileSync(src('tokens.css'), 'utf8') + '\n' + readFileSync(src('styles.css'), 'utf8');
-const html = readFileSync(src('index.html'), 'utf8')
+const html = readFileSync(src(page.dir + 'index.html'), 'utf8')
   .replace('/*__CSS__*/', () => css)
   .replace('/*__JS__*/', () => js);
 
 const external = html.match(/https?:\/\/[^\s"')]+/g) || [];
-const out = resolve(root, 'docs/plan', `客厅微改三方案-${stamp}.html`);
+const out = resolve(root, 'docs/plan', `${page.name}-${stamp}.html`);
 mkdirSync(dirname(out), { recursive: true });
 writeFileSync(out, html);
 console.log(`输出：${out}`);
