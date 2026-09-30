@@ -1,0 +1,15 @@
+{
+  "name": "light-touch-renovation",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "validate": "node viz/scripts/validate.mjs",
+    "build": "node viz/scripts/build.mjs",
+    "lint:tokens": "node viz/scripts/lint-tokens.mjs",
+    "shots": "node viz/scripts/shots.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "three": "^0.186.1"
+  }
+}

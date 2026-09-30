@@ -1,0 +1,66 @@
+/* Design tokens：唯一的视觉数值来源，语义说明见项目 DESIGN.md 第 3、4 节 */
+:root {
+  /* 色彩：中性灰阶 */
+  --c-bg: #fafafa;
+  --c-surface-hover: #ededed;
+  --c-surface-active: #e0e0e0;
+  --c-border: #d4d4d4;
+  --c-text: #171717;
+  --c-text-2: #525252;
+  --c-text-disabled: #a3a3a3;
+  --c-selected-bg: #171717;
+  --c-selected-text: #fafafa;
+  --c-focus: #171717;
+  --c-canvas-day: #d6d6d4;
+  --c-canvas-night: #262626;
+
+  /* 改动层级：明度递进，不使用彩色 */
+  --c-level-0-bg: transparent;
+  --c-level-0-text: #171717;
+  --c-level-1-bg: #ededed;
+  --c-level-1-text: #171717;
+  --c-level-2-bg: #b5b5b5;
+  --c-level-2-text: #171717;
+  --c-level-3-bg: #404040;
+  --c-level-3-text: #fafafa;
+
+  /* 间距：4px 基数 */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+
+  /* 尺寸 */
+  --radius: 4px;
+  --border-w: 1px;
+  --focus-w: 2px;
+  --focus-offset: 2px;
+  --panel-w: 380px;
+  --swatch: 24px;
+  --stage-h-narrow: 60vh; /* 窄屏时 3D 画布高度 */
+  --fallback-max-h: 70%; /* 出错兜底平面图的最大高度 */
+
+  /* 字阶 */
+  --font: "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+  --fs-title: 20px;
+  --fs-body: 14px;
+  --fs-caption: 12px;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-bold: 600;
+  --lh-title: 1.4;
+  --lh-body: 1.6;
+  --lh-label: 1.4;
+  --lh-caption: 1.5;
+
+  /* 动效 */
+  --dur: 120ms;
+  --ease: ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur: 0ms; }
+}
