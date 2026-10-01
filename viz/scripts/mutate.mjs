@@ -4,7 +4,8 @@ import { execSync } from 'node:child_process';
 
 const FILE = 'viz/src/creative/schemes.js';
 const RIG = 'viz/src/creative/rig.js';
-const originals = { [FILE]: readFileSync(FILE, 'utf8'), [RIG]: readFileSync(RIG, 'utf8') };
+const HOUSE = 'viz/src/house.js';
+const originals = { [FILE]: readFileSync(FILE, 'utf8'), [RIG]: readFileSync(RIG, 'utf8'), [HOUSE]: readFileSync(HOUSE, 'utf8') };
 // expect：必须出现的 FAIL 行里同时包含的方案名与检查名
 const MUTATIONS = [
   { name: '翻板撞到坐榻柜（方案四餐桌翻板铰链范围北移）', from: 'pivot: { x: 3040, z: 710 }, span: [4668, 5532]', to: 'pivot: { x: 3040, z: 710 }, span: [4200, 5064]', expect: ['方案四', '实体互不重叠'] },
@@ -21,6 +22,18 @@ const MUTATIONS = [
   { name: '坐榻龛顶灯带压到 z 1300', from: "z: 1435, mat: 'ledStrip'", to: "z: 1300, mat: 'ledStrip'", expect: ['方案四', '坐姿净高'] },
   { name: '升降立柱收起时顶穿桌板（桌板豁免漏洞）', from: 'x: 2250, y: 1750, w: 100, d: 100, h: 370', to: 'x: 2250, y: 1750, w: 100, d: 100, h: 400', expect: ['方案五', '实体互不重叠'] },
   { name: '聚会少一把椅子（方案四 c6 只在双人餐出现）', from: "chair('c6', ['party'], { base: { x: 1990, y: 5550, face: 'n' } })", to: "chair('c6', ['dine2'], { base: { x: 1990, y: 5550, face: 'n' } })", expect: ['方案四', '多人聚会餐座'] },
+  // 全屋外壳（house.js）
+  { name: '卧室 A 的床移出房间', file: HOUSE, from: "shape: 'bed', head: 'n', x: -2560,", to: "shape: 'bed', head: 'n', x: -3700,", expect: ['卧室 A', '物件在房间内'] },
+  { name: '卧室 B 衣柜压到床上', file: HOUSE, from: "name: '通顶衣柜', shape: 'box', x: -4790, y: 1350,", to: "name: '通顶衣柜', shape: 'box', x: -4790, y: -500,", expect: ['卧室 B', '物件互不重叠'] },
+  { name: '台盆柜挡住卫生间开口', file: HOUSE, from: "name: '台盆柜', shape: 'counter', x: -1500,", to: "name: '台盆柜', shape: 'counter', x: -1300,", expect: ['卫生间开口', '门内 600 净空'] },
+  { name: '方案模型混入上一任住户家具', file: HOUSE, from: "export const withPriorFor = (modelKey) => modelKey === 'current';", to: 'export const withPriorFor = () => true;', expect: ['方案四', '方案不含上一任住户家具'] },
+  { name: '卧室 C 东墙读错 520 mm（侵入客厅）', file: HOUSE, from: "poly: [[-2980, 1660], [-120, 1660], [-120, 4350], [-2980, 4350]] },", to: "poly: [[-2980, 1660], [400, 1660], [400, 4350], [-2980, 4350]] },", expect: ['外壳', '房间轮廓互不重叠'] },
+  // 外壳审查发现的空检
+  { name: '卧室 A 北墙重复一行且漏写窗', file: HOUSE, from: "{ x0: -3000, x1: -630, y0: -6400, y1: -6230, win: [-2900, -730, 450] },", to: "{ x0: -3000, x1: -630, y0: -6400, y1: -6230, win: [-2900, -730, 450] }, { x0: -3000, x1: -630, y0: -6400, y1: -6230 },", expect: ['外壳', '墙段互不重叠'] },
+  { name: '删掉厨房东墙', file: HOUSE, from: "  { x0: 5140, x1: 5390, y0: 4130, y1: 9100 },", to: '', expect: ['外壳', '房间四周封闭'] },
+  { name: '卫生间南墙缩短 600 留缝', file: HOUSE, from: '{ x0: -3110, x1: -670, y0: 6270, y1: 6510 },', to: '{ x0: -2510, x1: -670, y0: 6270, y1: 6510 },', expect: ['外壳', '房间四周封闭'] },
+  { name: '卧室 B 门前净空矩形挪到房间另一头', file: HOUSE, from: "name: '卧室 B 门', x: -2110, y: 280,", to: "name: '卧室 B 门', x: -4200, y: 280,", expect: ['卧室 B 门', '门内 600 净空'] },
+  { name: '卫生间轮廓伸进客厅墙（东南角不让开）', file: HOUSE, from: '[-120, 6150], [-670, 6150], [-670, 6270], [-2880, 6270]] },', to: '[-120, 6270], [-2880, 6270]] },', expect: ['外壳', '墙体不侵入房间'] },
 ];
 
 let caught = 0;

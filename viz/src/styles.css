@@ -60,7 +60,8 @@ html, body {
 .btn:disabled { color: var(--c-text-disabled); background: transparent; cursor: not-allowed; }
 
 /* 场景内标签 */
-.zone-label, .dim-label {
+/* room-label：客厅以外的房间名（只建模不做设计），与尺寸说明同为次级信息 */
+.zone-label, .dim-label, .room-label {
   font-size: var(--fs-caption);
   line-height: var(--lh-caption);
   color: var(--c-text);
@@ -70,7 +71,7 @@ html, body {
   padding: 0 var(--s-2);
   white-space: nowrap;
 }
-.dim-label { color: var(--c-text-2); }
+.dim-label, .room-label { color: var(--c-text-2); }
 
 /* 加载与出错（5b 数据状态） */
 .overlay {

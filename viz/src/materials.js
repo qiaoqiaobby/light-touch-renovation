@@ -25,6 +25,18 @@ export const MATERIALS = {
   plasticWhite:  { name: '白色塑料', color: '#ecebe8', rough: 0.5 },
   ledCool:       { name: '冷白吸顶灯', color: '#ffffff', rough: 0.5, emissive: '#eef4ff' },
 
+  // 其他房间（house.js，只建模不做设计）
+  wetTile:       { name: '卫浴厨房地砖', color: '#cfd0cd', rough: 0.3 },
+  cabinetWhite:  { name: '白色柜体', color: '#eeeeea', rough: 0.55 },
+  bedding:       { name: '床品', color: '#d9d3c6', rough: 0.95 },
+  ceramic:       { name: '白色陶瓷', color: '#f3f3f1', rough: 0.2 },
+  kitchenBlue:   { name: '蓝色烤漆橱柜门', color: '#4f8fc9', rough: 0.3 },
+  counterStone:  { name: '花岗岩台面', color: '#8f8a82', rough: 0.35 },
+  steel:         { name: '不锈钢', color: '#b9bcbe', rough: 0.35 },
+  applianceBlack:{ name: '黑色电器与柜体', color: '#26282a', rough: 0.4 },
+  wallCut:       { name: '剖切面（其他房间墙顶）', color: '#5f5c57', rough: 0.9 },
+  overhead:      { name: '高处物件的地面投影', color: '#8c8780', rough: 1, opacity: 0.35 },
+
   // 方案通用
   wallWarm:      { name: '暖白乳胶漆', color: '#eeebe5', rough: 0.92 },
   screen:        { name: '投影幕布', color: '#f5f5f3', rough: 0.9 },

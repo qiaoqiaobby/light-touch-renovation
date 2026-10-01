@@ -10,7 +10,7 @@
 | `VR/` | 原始现状资料：`VR离线全景.html`（14 场景全景）、`231348_751.png`（户型图）、`README.md`（全景文件数据契约） | 只读，不修改、不移动、不删除 |
 | `docs/plan/` | 正式产出物：诊断表、方案文档、可视化页面 | 文件名 = 任务名 + 24 小时制时间戳，如 `客厅微改方案-202609301530.md` |
 | `mid/` | 过程文件：全景展开图、提取脚本、截图、中间计算 | 可随时重新生成，不作为交付依据，不入库 |
-| `viz/` | 3D 可视化源码：`src/` 为页面一（第一组三方案），`src/creative/` 为页面二（创意三方案，含机构数据层 `rig.js`）；`scripts/` 为校验、构建、截图脚本 | 几何与家具数据只改 `geometry.js` 与各页的 `schemes.js`，改后先跑 `npm run validate`；构建用 `node viz/scripts/build.mjs <时间戳> basic\|creative` |
+| `viz/` | 3D 可视化源码：`src/` 为页面一（第一组三方案），`src/creative/` 为页面二（创意三方案，含机构数据层 `rig.js`）；`src/house.js` 为两页共用的其他房间外壳（只建模不做设计）；`scripts/` 为校验、构建、截图、变异测试脚本 | 几何与家具数据只改 `geometry.js`、`house.js` 与各页的 `schemes.js`，改后先跑 `npm run validate`；构建用 `node viz/scripts/build.mjs <时间戳> basic\|creative` |
 | `DESIGN.md` | 项目级 UI 规范 | 改 `viz/` 的界面前先读；视觉数值只来自 `viz/src/tokens.css` |
 | `ROADMAP.md` | 项目真实进度源 | 每次完成调研、决策、产出后同步更新 |
 

@@ -5,6 +5,7 @@ import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRe
 import { ROOM, OPENINGS, MEDIA_WALL, FIXED, CEILING, WALL_T, SURVEY } from './geometry.js';
 import { MODELS, STATES, resolveItems } from './schemes.js';
 import { MATERIALS } from './materials.js';
+import { HOUSE_ROOMS, HOUSE_ITEMS, HOUSE_NOTE, wallBoxes, itemBoxes, houseItems, houseBounds } from './house.js';
 
 const M = 0.001; // mm → m
 const $ = (id) => document.getElementById(id);
@@ -18,7 +19,7 @@ const ui = { model: 'current', state: 'daily', view: 'persp', light: 'day' };
 const LIGHT = {
   day: { hemi: 2.2, sun: 3.2, glow: 0 },
   exposure: 1.2,
-  night: { hemi: 0.06, glow: 1.4, ceilWarm: 2.5, ceilCool: 7, lamp: 5, screen: 1.5 },
+  night: { hemi: 0.06, glow: 1.4, ceilWarm: 2.5, ceilCool: 7, lamp: 5, screen: 1.5, house: 0.2 },
   projection: 1.1,
 };
 
@@ -48,6 +49,13 @@ const persp = new THREE.PerspectiveCamera(45, 1, 0.05, 100);
 persp.position.set(9.0, 10.0, 8.5); // 从东南高处看，东墙与南墙剖切
 const ortho = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 100);
 ortho.position.set(1.55, 20, 3.5501); // 略偏南俯视，屏幕上方为北
+
+// 俯视取景（米）：plan 以客厅为焦点（含北侧尺寸标签），house 装下全屋
+const HB = houseBounds();
+const FRAMES = {
+  plan: { cx: 1.55, cz: 3.55, bw: 4.9, bh: 10.6 },
+  house: { cx: (HB.x0 + HB.x1) / 2 * M, cz: (HB.y0 + HB.y1) / 2 * M, bw: (HB.x1 - HB.x0 + 400) * M, bh: (HB.y1 - HB.y0 + 800) * M },
+};
 
 const target = new THREE.Vector3(1.5, 0.6, 3.6);
 const orbit = new OrbitControls(persp, renderer.domElement);
@@ -292,7 +300,36 @@ function buildShell() {
   });
 
   for (const f of FIXED) shell.add(buildItem({ ...f, z: 0, shape: 'box' }));
+  shell.add(buildHouse());
   return shell;
+}
+
+// ───────── 其他房间（house.js，只建模不做设计）─────────
+// 不投射也不接收阴影：天光阴影范围只覆盖客厅，其他房间均匀受光，读作剖切模型
+// 其他房间用独立的材质副本：夜间整体压暗，表示这些房间不点灯（不投影时客厅灯光会穿墙照亮它们）
+const houseMats = new Map();
+function houseMat(key) {
+  if (!houseMats.has(key)) { const m = mat(key).clone(); m.userData.base = m.color.clone(); houseMats.set(key, m); }
+  return houseMats.get(key);
+}
+function dimHouse(night) {
+  for (const m of houseMats.values()) m.color.copy(m.userData.base).multiplyScalar(night ? LIGHT.night.house : 1);
+}
+function houseMesh(b) {
+  const m = slab({ x0: b.x0 * M, x1: b.x1 * M, z0: b.y0 * M, z1: b.y1 * M }, b.z0 * M, (b.z1 - b.z0) * M, houseMat(b.key));
+  m.castShadow = m.receiveShadow = false;
+  return m;
+}
+function buildHouse() {
+  const g = new THREE.Group();
+  for (const r of HOUSE_ROOMS) {
+    const geo = new THREE.ShapeGeometry(new THREE.Shape(r.poly.map(([x, y]) => new THREE.Vector2(x * M, -y * M))));
+    geo.rotateX(-Math.PI / 2);
+    g.add(new THREE.Mesh(geo, houseMat(r.wet ? 'wetTile' : 'tile')));
+  }
+  for (const b of wallBoxes()) g.add(houseMesh(b));
+  for (const it of HOUSE_ITEMS.filter((i) => i.kind === 'fixed')) for (const b of itemBoxes(it)) g.add(houseMesh(b));
+  return g;
 }
 function outward(x1, y1, x2, y2) {
   let nx = y2 - y1, ny = -(x2 - x1);
@@ -352,6 +389,7 @@ function rebuild() {
   disposeGroup(furniture);
   furniture = new THREE.Group();
   for (const it of items) furniture.add(buildItem(it));
+  for (const it of houseItems(model.key).filter((i) => i.kind === 'prior')) for (const b of itemBoxes(it)) furniture.add(houseMesh(b));
   // 吸顶灯只在夜间透视中显示：未绘制天花板，白天的灯盘会被读成悬浮物，俯视时会盖住家具
   for (const c of ui.light === 'night' && ui.view === 'persp' ? model.ceil : []) {
     furniture.add(cyl(0.2, 0.2, 0.03, mat(c.kind === 'cool' ? 'ledCool' : 'lampWarm'), c.x * M, CEILING * M - 0.03, c.y * M));
@@ -399,12 +437,18 @@ function rebuild() {
   }
   scene.add(lights);
   for (const m of matCache.values()) if (m.userData.glow) m.emissiveIntensity = night ? LIGHT.night.glow : LIGHT.day.glow;
+  dimHouse(night);
   mat('projection').emissiveIntensity = LIGHT.projection;
   scene.background = new THREE.Color(cssVar(night ? '--c-canvas-night' : '--c-canvas-day'));
 
   disposeGroup(labels);
   labels = new THREE.Group();
   for (const z of model.zones) labels.add(label(z.name, z.x, z.y, 'zone-label'));
+  // 房间名只在全屋俯视里出现：CSS2D 标签没有遮挡判断，透视里会压在客厅墙上
+  if (ui.view === 'house') {
+    for (const r of HOUSE_ROOMS) labels.add(label(r.name, r.label[0], r.label[1], 'room-label'));
+    labels.add(label(HOUSE_NOTE, 3300, -3000, 'dim-label')); // 客厅北侧的空白处
+  }
   if (ui.view === 'plan') {
     labels.add(label('东西净宽约 3.6 m（待复核）', 1800, -1050, 'dim-label'));
     labels.add(label('南北进深约 8.9 m（待复核）', 4350, 3800, 'dim-label'));
@@ -420,6 +464,16 @@ function render() {
   labelRenderer.render(scene, cam);
 }
 
+// 切换俯视取景框：相机与平移目标回到该框中心，缩放复位
+function frameOrtho() {
+  const f = FRAMES[ui.view];
+  ortho.position.set(f.cx, 20, f.cz + 0.0001);
+  ortho.zoom = 1;
+  plan.target.set(f.cx, 0, f.cz);
+  plan.update();
+  resize();
+}
+
 function resize() {
   const w = stage.clientWidth, h = stage.clientHeight;
   if (!w || !h) return;
@@ -427,8 +481,8 @@ function resize() {
   labelRenderer.setSize(w, h);
   persp.aspect = w / h;
   persp.updateProjectionMatrix();
-  // 俯视：按房间外包框适配
-  const bw = 4.9, bh = 10.6, aspect = w / h; // 含北侧尺寸标签
+  // 俯视：按当前取景框适配
+  const { bw, bh } = FRAMES[ui.view === 'house' ? 'house' : 'plan'], aspect = w / h;
   const halfH = Math.max(bh / 2, bw / 2 / aspect) * 1.08;
   Object.assign(ortho, { left: -halfH * aspect, right: halfH * aspect, top: halfH, bottom: -halfH });
   ortho.updateProjectionMatrix();
@@ -458,7 +512,7 @@ function syncButtons(buttons, current, disabled = false) {
 
 const bars = {
   model: segButtons($('modelBar'), MODELS.map((m) => ({ key: m.key, label: m.label })), (k) => { ui.model = k; update(); }),
-  view: segButtons($('viewBar'), [{ key: 'persp', label: '透视' }, { key: 'plan', label: '俯视' }], (k) => { ui.view = k; orbit.enabled = k === 'persp'; plan.enabled = k === 'plan'; update(); }),
+  view: segButtons($('viewBar'), [{ key: 'persp', label: '透视' }, { key: 'plan', label: '俯视' }, { key: 'house', label: '全屋' }], (k) => { ui.view = k; orbit.enabled = k === 'persp'; plan.enabled = k !== 'persp'; if (k !== 'persp') frameOrtho(); update(); }),
   light: segButtons($('lightBar'), [{ key: 'day', label: '昼' }, { key: 'night', label: '夜' }], (k) => { ui.light = k; update(); }),
   state: segButtons($('stateBar'), STATES, (k) => { ui.state = k; update(); }),
 };
@@ -515,9 +569,10 @@ function showError(e) {
   $('gl').hidden = true;
   const items = resolveItems(modelOf(ui.model), 'daily').filter((i) => i.mount === 'floor');
   const pts = ROOM.map(([x, y]) => `${x},${y}`).join(' ');
-  const rects = items.map((i) => `<rect x="${i.x}" y="${i.y}" width="${i.w}" height="${i.d}" fill="${MATERIALS[i.mat].color}" style="stroke:var(--c-text-2)" stroke-width="15"/>`).join('');
+  const rects = [...items, ...houseItems(ui.model).filter((i) => !i.z)].map((i) => `<rect x="${i.x}" y="${i.y}" width="${i.w}" height="${i.d}" fill="${MATERIALS[i.mat].color}" style="stroke:var(--c-text-2)" stroke-width="15"/>`).join('');
+  const rooms = HOUSE_ROOMS.map((r) => `<polygon points="${r.poly.map(([x, y]) => `${x},${y}`).join(' ')}" fill="none" style="stroke:var(--c-text-2)" stroke-width="30"/>`).join('');
   box.innerHTML = `<div>无法创建 WebGL 上下文，3D 模型不可用（${esc(e.message)}）。请换用支持 WebGL 的浏览器。下面是同一数据绘制的现状俯视平面。</div>`
-    + `<svg viewBox="-1500 -800 5200 9100" role="img" aria-label="现状俯视平面"><polygon points="${pts}" fill="none" style="stroke:var(--c-text)" stroke-width="30"/>${rects}</svg>`;
+    + `<svg viewBox="-6100 -6600 11700 15900" role="img" aria-label="现状全屋俯视平面">${rooms}<polygon points="${pts}" fill="none" style="stroke:var(--c-text)" stroke-width="30"/>${rects}</svg>`;
 }
 
 // ───────── 启动 ─────────

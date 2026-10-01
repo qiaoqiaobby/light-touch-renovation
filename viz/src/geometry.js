@@ -28,7 +28,7 @@ export const OPENINGS = [
   { edge: 9,  from: 130,   to: 940,  bottom: 0,    top: 2100, kind: 'door',   fill: 'doorEntry', name: '入户门' },
   { edge: 10, from: 6600,  to: 7900, bottom: 1050, top: 2100, kind: 'window', fill: 'glass',     name: '入户区西窗' },
   { edge: 12, from: 4900,  to: 6100, bottom: 0,    top: 2200, kind: 'open',   fill: null,        name: '卫生间开口' },
-  { edge: 12, from: 1610,  to: 2450, bottom: 0,    top: 2100, kind: 'door',   fill: 'doorWhite', name: '卧室 C 门' },
+  { edge: 13, from: -1120, to: -280, bottom: 0,    top: 2100, kind: 'door',   fill: 'doorWhite', name: '卧室 C 门' }, // 过道南墙（2026-10-01 按户型图放大与全景 7 更正，原误标在主厅西墙）
   { edge: 14, from: 280,   to: 1120, bottom: 0,    top: 2100, kind: 'door',   fill: 'doorWhite', name: '卧室 B 门' },
 ];
 
@@ -46,7 +46,7 @@ export const ROUTE = {
   start: { name: '入户门内', x: 535, y: 7750 },
   targets: [
     { name: '卫生间', x: 450, y: 5500 },
-    { name: '卧室 C 门', x: 450, y: 2030 },
+    { name: '卧室 C 门', x: -700, y: 1090 },
     { name: '卧室 A/B 过道', x: -700, y: 770 },
     { name: '厨房门', x: 2450, y: 7000 },
   ],

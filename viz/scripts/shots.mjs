@@ -1,5 +1,5 @@
 // 浏览器实测：无头 Chrome + DevTools 协议（Node 自带 WebSocket，无新增依赖）
-// 逐个切换 模型 × 使用状态 × 昼夜 × 视图 截图到 mid/shots/，汇总控制台报错与最小字号
+// 逐个切换 模型 × 使用状态 × 昼夜 × 视图 截图到 mid/shots/，另截每个模型的全屋俯视与全屋透视，汇总控制台报错与最小字号
 // 用法：node viz/scripts/shots.mjs <html 路径> [basic | creative，默认 basic]
 // creative 另外借页面的测试钩子 window.__viz，定格每个方案「收起 → 多人聚会」变形的 0 / 50 / 100% 三帧
 import { spawn } from 'node:child_process';
@@ -77,6 +77,26 @@ try {
         }
       }
     }
+  }
+
+  // 全屋：每个模型一张全屋俯视、一张拉远的全屋透视（滚轮拉远后再拉回，不影响后续截图）
+  const wheel = async (dy, times) => {
+    for (let i = 0; i < times; i++) {
+      await send('Input.dispatchMouseEvent', { type: 'mouseWheel', x: 560, y: 500, deltaX: 0, deltaY: dy });
+      await sleep(60);
+    }
+  };
+  for (const m of MODELS) {
+    await click('modelBar', m.label);
+    await click('stateBar', STATES[0].label);
+    await click('lightBar', '昼');
+    await click('viewBar', '全屋');
+    await shot(`${m.key}-house-plan-day`);
+    await click('viewBar', '透视');
+    await wheel(400, 6);
+    await shot(`${m.key}-house-persp-day`);
+    await wheel(-400, 6);
+    n += 2;
   }
 
   if (kind === 'creative') {

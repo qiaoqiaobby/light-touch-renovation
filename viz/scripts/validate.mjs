@@ -1,7 +1,8 @@
 // 数据校验：对每个模型的每个使用状态检查
 // 1 物体在房间内  2 落地物体互不重叠  3 主路线净宽 ≥ 800 可达（运动状态下瑜伽垫视为占用）
 // 4 运动状态在方案声明的运动区内有 ≥ 2000×1000 空地，且瑜伽垫位于运动区内  5 多人聚会 ≥ 6 座、双人餐 ≥ 2 座
-import { ROOM, FIXED, ROUTE } from '../src/geometry.js';
+import { ROOM, FIXED, ROUTE, WALL_T, OPENINGS } from '../src/geometry.js';
+import { HOUSE_ROOMS, HOUSE_WALLS, HOUSE_ITEMS, HOUSE_DOORS, wallBoxes, houseItems } from '../src/house.js';
 import { MODELS, STATES, resolveItems } from '../src/schemes.js';
 import { MODELS as MODELS2, STATES as STATES2 } from '../src/creative/schemes.js';
 import { resolveState, poseAll, overlap3, freeRatio, present, legsOf, facadePanels, paramsOf } from '../src/creative/rig.js';
@@ -268,6 +269,126 @@ for (const model of MODELS2.filter((m) => m.key !== 'current')) {
 for (const [k, v] of Object.entries(metrics2)) {
   const m = MODELS2.find((x) => x.key === k);
   console.log(`空置率  ${m.label} / 收起：地面 ${(v.floor * 100).toFixed(0)}%，含台面 ${(v.usable * 100).toFixed(0)}%`);
+}
+
+// ───────── 全屋外壳（house.js）：只建模不做设计，检查几何自洽、物件归位、门前净空与比例偏差 ─────────
+const inPolyP = (poly, px, py) => {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i], [xj, yj] = poly[j];
+    if ((yi > py) !== (yj > py) && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+};
+const polyArea = (p) => Math.abs(p.reduce((s, [x, y], i) => { const [px, py] = p[(i + p.length - 1) % p.length]; return s + px * y - x * py; }, 0)) / 2;
+const rectInPoly = (poly, r) => {
+  for (let x = r.x + 1; x <= r.x + r.w - 1; x += Math.min(CELL, Math.max(1, r.w - 2))) for (const y of [r.y + 1, r.y + r.d - 1]) if (!inPolyP(poly, x, y)) return false;
+  for (let y = r.y + 1; y <= r.y + r.d - 1; y += Math.min(CELL, Math.max(1, r.d - 2))) for (const x of [r.x + 1, r.x + r.w - 1]) if (!inPolyP(poly, x, y)) return false;
+  return true;
+};
+// 客厅墙体矩形：与两页 buildShell 同一算法（沿各边向外推 WALL_T，外凸角补块）
+const outwardN = (x1, y1, x2, y2) => {
+  let nx = y2 - y1, ny = -(x2 - x1);
+  const L = Math.hypot(nx, ny); nx /= L; ny /= L;
+  if (inPoly((x1 + x2) / 2 + nx * 50, (y1 + y2) / 2 + ny * 50)) { nx = -nx; ny = -ny; }
+  return [nx, ny];
+};
+const livingWalls = [];
+ROOM.forEach(([x1, y1], i) => {
+  const [x2, y2] = ROOM[(i + 1) % ROOM.length];
+  const [nx, ny] = outwardN(x1, y1, x2, y2);
+  const ax = [x1, x2, x1 + nx * WALL_T, x2 + nx * WALL_T], ay = [y1, y2, y1 + ny * WALL_T, y2 + ny * WALL_T];
+  livingWalls.push({ x0: Math.min(...ax), x1: Math.max(...ax), y0: Math.min(...ay), y1: Math.max(...ay), name: `客厅墙 ${i}` });
+  const [qx, qy] = ROOM[(i + 2) % ROOM.length];
+  const n2 = outwardN(x2, y2, qx, qy);
+  const cxx = x2 + ((nx + n2[0]) * WALL_T) / 2, cyy = y2 + ((ny + n2[1]) * WALL_T) / 2;
+  // 共线的相邻边也会生成补块（凸出墙外皮 60 mm）；这里记下来供封闭性检查，但不参与重叠判断（目前唯一一处正好落在卧室 A 东墙里，渲染上不产生共面）
+  if (!inPoly(cxx, cyy)) livingWalls.push({ ...{ x0: cxx - WALL_T / 2, x1: cxx + WALL_T / 2, y0: cyy - WALL_T / 2, y1: cyy + WALL_T / 2 }, name: `客厅墙角 ${i + 1}`, collinear: nx === n2[0] && ny === n2[1] });
+});
+const ovl2 = (a, b) => a.x0 < b.x1 - 0.5 && b.x0 < a.x1 - 0.5 && a.y0 < b.y1 - 0.5 && b.y0 < a.y1 - 0.5;
+const polys = [{ name: '客厅', poly: ROOM }, ...HOUSE_ROOMS.map((r) => ({ name: r.name, poly: r.poly }))];
+{
+  const H = '全屋', S = '外壳';
+  // 1 房间轮廓互不重叠（25 mm 栅格）
+  const dup = new Set();
+  for (let x = -6000; x <= 5500; x += CELL) for (let y = -6500; y <= 9200; y += CELL) {
+    const hit = polys.filter((p) => inPolyP(p.poly, x + 0.5, y + 0.5));
+    if (hit.length > 1) dup.add(hit.map((p) => p.name).join('×'));
+  }
+  check(H, S, '房间轮廓互不重叠（含客厅）', dup.size === 0, [...dup].join('、'));
+  // 2 墙段（含客厅墙）不侵入任何房间；新墙段之间、新墙与客厅墙之间不重叠（重叠面会闪烁）
+  const walls = wallBoxes().filter((w) => !w.glass && !w.cap);
+  const intrude = [];
+  const housePolys = polys.slice(1);
+  for (const w of [...walls.map((q) => ({ ...q, name: `墙段 ${q.wall}` })), ...livingWalls.map((l) => ({ ...l, others: true }))])
+    for (let x = w.x0 + 5; x < w.x1; x += 20) for (let y = w.y0 + 5; y < w.y1; y += 20) {
+      const p = (w.others ? housePolys : polys).find((q) => inPolyP(q.poly, x, y));
+      if (p) { intrude.push(`${w.name}侵入${p.name}`); x = Infinity; break; }
+    }
+  check(H, S, '墙体不侵入房间（含客厅墙）', intrude.length === 0, [...new Set(intrude)].join('、'));
+  const clash = [];
+  for (const w of walls) for (const l of livingWalls.filter((q) => !q.collinear)) if (ovl2(w, l)) clash.push(`墙段 ${w.wall}×${l.name}`);
+  for (let i = 0; i < walls.length; i++) for (let j = i + 1; j < walls.length; j++) {
+    const a = walls[i], b = walls[j];
+    const sameRow = a.wall === b.wall && (a.z1 <= b.z0 || b.z1 <= a.z0); // 同一墙段按窗洞拆成的上下块
+    if (!sameRow && ovl2(a, b)) clash.push(`墙段 ${a.wall}×墙段 ${b.wall}`);
+  }
+  check(H, S, '墙段互不重叠、不与客厅墙重叠', clash.length === 0, [...new Set(clash)].slice(0, 6).join('、'));
+  // 2b 房间封闭：轮廓每条边外侧 60 mm 的采样点都落在墙段平面里（新墙段含窗洞，窗也算封闭；客厅墙的平面矩形覆盖门洞）
+  const leak = [];
+  const allWalls = [...HOUSE_WALLS, ...livingWalls];
+  for (const r of HOUSE_ROOMS) r.poly.forEach(([x1, y1], i) => {
+    const [x2, y2] = r.poly[(i + 1) % r.poly.length];
+    const L = Math.hypot(x2 - x1, y2 - y1), ux = (x2 - x1) / L, uy = (y2 - y1) / L;
+    let nx = uy, ny = -ux;
+    if (inPolyP(r.poly, (x1 + x2) / 2 + nx * 30, (y1 + y2) / 2 + ny * 30)) { nx = -nx; ny = -ny; }
+    for (let s = 70; s < L - 70; s += 50) {
+      const px = x1 + ux * s + nx * 60, py = y1 + uy * s + ny * 60;
+      if (!allWalls.some((w) => px >= w.x0 && px <= w.x1 && py >= w.y0 && py <= w.y1)) { leak.push(`${r.name} 边 ${i}（${Math.round(px)}, ${Math.round(py)}）`); break; }
+    }
+  });
+  check(H, S, '房间四周封闭（墙体无缺口）', leak.length === 0, leak.join('、'));
+  // 3 标注面积比例：五个房间的偏差应落在同一区间（比例系统偏差），离群说明读错
+  for (const r of HOUSE_ROOMS) {
+    const dev = polyArea(r.poly) / 1e6 / r.area - 1;
+    check(H, r.name, '图面面积与标注面积偏差在 +8%–+20%', dev >= 0.08 && dev <= 0.2, `图面 ${(polyArea(r.poly) / 1e6).toFixed(1)} ㎡，标注 ${r.area} ㎡，偏差 ${dev >= 0 ? '+' : ''}${Math.round(dev * 100)}%`);
+  }
+  // 4 物件在所属房间内；同房间实体互不重叠（按含上一任住户家具的最满情况）
+  const byRoom = new Map(HOUSE_ROOMS.map((r) => [r.id, r]));
+  for (const r of HOUSE_ROOMS) {
+    const items = HOUSE_ITEMS.filter((it) => it.room === r.id);
+    const out = items.filter((it) => !rectInPoly(r.poly, it));
+    check(H, r.name, '物件在房间内', out.length === 0, out.map((it) => it.name).join('、'));
+    const hits = [];
+    for (let i = 0; i < items.length; i++) for (let j = i + 1; j < items.length; j++) if (overlap3(items[i], items[j])) hits.push(`${items[i].name}×${items[j].name}`);
+    check(H, r.name, '物件互不重叠', hits.length === 0, hits.join('、'));
+  }
+  const orphan = HOUSE_ITEMS.filter((it) => !byRoom.has(it.room));
+  check(H, S, '物件都归属已定义的房间', orphan.length === 0, orphan.map((it) => it.name).join('、'));
+  // 5 门洞内侧 600 净空：净空矩形在房间内、对准客厅墙上的门洞、且没有 2 m 以下的物件
+  for (const dr of HOUSE_DOORS) {
+    const room = byRoom.get(dr.room);
+    const op = OPENINGS.find((o) => o.name === dr.name);
+    const vertical = op && ROOM[op.edge][0] === ROOM[(op.edge + 1) % ROOM.length][0];
+    const span = vertical ? [dr.y, dr.y + dr.d] : [dr.x, dr.x + dr.w];
+    const cover = op ? Math.max(0, Math.min(span[1], op.to) - Math.max(span[0], op.from)) / (op.to - op.from) : 0;
+    // 净空矩形必须贴着门洞所在墙的房间一侧（墙面 = 客厅轮廓边 + 外法向 × 墙厚）
+    let gap = Infinity;
+    if (op) {
+      const [ex1, ey1] = ROOM[op.edge], [ex2, ey2] = ROOM[(op.edge + 1) % ROOM.length];
+      const [nx, ny] = outwardN(ex1, ey1, ex2, ey2);
+      gap = vertical ? Math.min(Math.abs(dr.x - (ex1 + nx * WALL_T)), Math.abs(dr.x + dr.w - (ex1 + nx * WALL_T)))
+        : Math.min(Math.abs(dr.y - (ey1 + ny * WALL_T)), Math.abs(dr.y + dr.d - (ey1 + ny * WALL_T)));
+    }
+    const block = HOUSE_ITEMS.filter((it) => it.room === dr.room && (it.z || 0) < 2000 && overlap(it, dr));
+    check(H, dr.name, '门内 600 净空无遮挡、贴着并对准门洞', rectInPoly(room.poly, dr) && cover >= 0.98 && gap <= 10 && block.length === 0,
+      `对准 ${Math.round(cover * 100)}%，离墙面 ${Math.round(gap)} mm${block.length ? '；挡门：' + block.map((it) => it.name).join('、') : ''}`);
+  }
+  // 6 上一任住户的家具只出现在「现状」
+  for (const m of [...MODELS, ...MODELS2]) {
+    const prior = houseItems(m.key).filter((it) => it.kind === 'prior').length;
+    check(H, m.label, m.key === 'current' ? '现状带上一任住户家具' : '方案不含上一任住户家具', m.key === 'current' ? prior > 0 : prior === 0, `${prior} 件`);
+  }
 }
 
 // 现状的家具位置由全景推测，结果只作诊断参考，不计入通过或失败

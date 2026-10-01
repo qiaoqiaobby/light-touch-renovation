@@ -15,6 +15,7 @@ import { MODELS, STATES } from './schemes.js';
 import { MATERIALS } from './materials.js';
 import { poseAll, resolveState, freeRatio, present, legsOf } from './rig.js';
 import { textureFor, worldUV } from './textures.js';
+import { HOUSE_ROOMS, HOUSE_ITEMS, HOUSE_NOTE, wallBoxes, itemBoxes, houseItems, houseBounds } from '../house.js';
 
 const M = 0.001;
 const $ = (id) => document.getElementById(id);
@@ -28,7 +29,7 @@ const ui = { model: 's4', state: 'daily', view: 'persp', light: 'day' };
 const LIGHT = {
   exposure: 1.05,
   day: { hemi: 0.9, sun: 2.6, env: 0.45, glow: 0 },
-  night: { hemi: 0.03, env: 0.05, glow: 1.6, ceil: 1.1, lamp: 4, area: 5, screen: 1.2 },
+  night: { hemi: 0.03, env: 0.05, glow: 1.6, ceil: 1.1, lamp: 4, area: 5, screen: 1.2, house: 0.2 },
   projection: 1.1,
   aoBudgetMs: 100, // 单帧超过该值即关闭环境光遮蔽（计划第七节）
 };
@@ -69,6 +70,12 @@ const VIEW_OF = { current: 'southeast', s4: 'southwest', s5: 'southwest', s6: 's
 persp.position.set(...VIEWS.southwest.pos);
 const ortho = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 100);
 ortho.position.set(1.55, 20, 3.5501);
+// 俯视取景（米）：plan 以客厅为焦点（含北侧尺寸标签），house 装下全屋
+const HB = houseBounds();
+const FRAMES = {
+  plan: { cx: 1.55, cz: 3.55, bw: 4.9, bh: 10.6 },
+  house: { cx: (HB.x0 + HB.x1) / 2 * M, cz: (HB.y0 + HB.y1) / 2 * M, bw: (HB.x1 - HB.x0 + 400) * M, bh: (HB.y1 - HB.y0 + 800) * M },
+};
 const orbit = new OrbitControls(persp, renderer.domElement);
 orbit.target.set(...VIEWS.southwest.target);
 orbit.maxPolarAngle = THREE.MathUtils.degToRad(85);
@@ -425,7 +432,50 @@ function buildShell() {
     const m = block(f.x * M, (f.x + f.w) * M, 0, f.h * M, f.y * M, (f.y + f.d) * M, f.mat, 0.004);
     shell.add(m);
   }
+  shell.add(buildHouse());
   return shell;
+}
+
+// ───────── 其他房间（house.js，只建模不做设计）─────────
+// 不投射也不接收阴影：天光阴影范围只覆盖客厅，其他房间均匀受光，读作剖切模型
+// 其他房间用独立的材质副本：夜间整体压暗，表示这些房间不点灯（不投影时客厅灯光会穿墙照亮它们）
+const houseMats = new Map();
+function houseMat(key) {
+  if (!houseMats.has(key)) { const m = mat(key).clone(); m.userData.base = m.color.clone(); houseMats.set(key, m); }
+  return houseMats.get(key);
+}
+function dimHouse(night) {
+  for (const m of houseMats.values()) m.color.copy(m.userData.base).multiplyScalar(night ? LIGHT.night.house : 1);
+}
+function houseMesh(b) {
+  const m = block(b.x0 * M, b.x1 * M, b.z0 * M, b.z1 * M, b.y0 * M, b.y1 * M, b.key, 0.002);
+  m.material = houseMat(b.key);
+  m.castShadow = m.receiveShadow = false;
+  return m;
+}
+function buildHouse() {
+  const g = new THREE.Group();
+  for (const r of HOUSE_ROOMS) {
+    const key = r.wet ? 'wetTile' : 'tileGloss';
+    const geo = new THREE.ShapeGeometry(new THREE.Shape(r.poly.map(([x, y]) => new THREE.Vector2(x * M, -y * M))));
+    geo.rotateX(-Math.PI / 2);
+    const t = tileOf(key);
+    if (t) { // 地面纹理按世界尺度，与客厅地面同一周期
+      const uv = geo.attributes.uv, pos = geo.attributes.position;
+      for (let i = 0; i < pos.count; i++) uv.setXY(i, pos.getX(i) / t, pos.getZ(i) / t);
+    }
+    g.add(new THREE.Mesh(geo, houseMat(key)));
+  }
+  for (const b of wallBoxes()) g.add(houseMesh(b));
+  for (const it of HOUSE_ITEMS.filter((i) => i.kind === 'fixed')) for (const b of itemBoxes(it)) g.add(houseMesh(b));
+  return g;
+}
+let housePrior = new THREE.Group(); // 「现状」才有的上一任住户家具，随模型切换重建
+function buildHousePrior(model) {
+  disposeGroup(housePrior);
+  housePrior = new THREE.Group();
+  for (const it of houseItems(model.key).filter((i) => i.kind === 'prior')) for (const b of itemBoxes(it)) housePrior.add(houseMesh(b));
+  scene.add(housePrior);
 }
 function applyShell(model) {
   for (const w of walls) if (w.slot) w.mesh.material = mat(w.slot === 'media' ? model.walls.media : model.walls.base);
@@ -607,6 +657,7 @@ function buildLights() {
   }
   for (const m of matCache.values()) if (m.userData.glow) m.emissiveIntensity = night ? LIGHT.night.glow : LIGHT.day.glow;
   for (const e of parts.values()) e.group.traverse((o) => { if (o.userData.ownMat) [].concat(o.material).forEach((m) => { if (m.emissive) m.emissiveIntensity = night ? LIGHT.night.glow : LIGHT.day.glow; }); });
+  dimHouse(night);
   mat('projection').emissiveIntensity = LIGHT.projection;
   scene.background = new THREE.Color(cssVar(night ? '--c-canvas-night' : '--c-canvas-day'));
   scene.add(lights);
@@ -625,6 +676,11 @@ function buildLabels(model) {
   labels = new THREE.Group();
   const st = model.key === 'current' ? 'daily' : ui.state;
   for (const z of model.zones.filter((q) => !q.only || q.only.includes(st))) labels.add(label(z.name, z.x, z.y, 'zone-label'));
+  // 房间名只在全屋俯视里出现：CSS2D 标签没有遮挡判断，透视里会压在客厅墙上
+  if (ui.view === 'house') {
+    for (const r of HOUSE_ROOMS) labels.add(label(r.name, r.label[0], r.label[1], 'room-label'));
+    labels.add(label(HOUSE_NOTE, 3300, -3000, 'dim-label')); // 客厅北侧的空白处
+  }
   if (ui.view === 'plan') {
     labels.add(label('东西净宽约 3.6 m（待复核）', 1800, -1050, 'dim-label'));
     labels.add(label('南北进深约 8.9 m（待复核）', 4350, 3800, 'dim-label'));
@@ -639,6 +695,7 @@ function rebuildModel() {
   for (const e of parts.values()) disposeGroup(e.group);
   parts.clear();
   applyShell(model);
+  buildHousePrior(model);
   const v = VIEWS[VIEW_OF[model.key]];
   persp.position.set(...v.pos);
   orbit.target.set(...v.target);
@@ -659,6 +716,15 @@ function render() {
   composer.render();
   labelRenderer.render(scene, cam);
 }
+// 切换俯视取景框：相机与平移目标回到该框中心，缩放复位
+function frameOrtho() {
+  const f = FRAMES[ui.view];
+  ortho.position.set(f.cx, 20, f.cz + 0.0001);
+  ortho.zoom = 1;
+  plan.target.set(f.cx, 0, f.cz);
+  plan.update();
+  resize();
+}
 function resize() {
   const w = stage.clientWidth, h = stage.clientHeight;
   if (!w || !h) return;
@@ -667,7 +733,7 @@ function resize() {
   labelRenderer.setSize(w, h);
   persp.aspect = w / h;
   persp.updateProjectionMatrix();
-  const bw = 4.9, bh = 10.6, aspect = w / h; // 俯视按房间外包框适配，含北侧尺寸标签
+  const { bw, bh } = FRAMES[ui.view === 'house' ? 'house' : 'plan'], aspect = w / h; // 俯视按当前取景框适配
   const halfH = Math.max(bh / 2, bw / 2 / aspect) * 1.08;
   Object.assign(ortho, { left: -halfH * aspect, right: halfH * aspect, top: halfH, bottom: -halfH });
   ortho.updateProjectionMatrix();
@@ -711,7 +777,7 @@ function syncButtons(buttons, current, disabled = false) {
 }
 const bars = {
   model: segButtons($('modelBar'), MODELS.map((m) => ({ key: m.key, label: m.label })), (k) => { if (k === ui.model) return; ui.model = k; renderUI(); rebuildModel(); }),
-  view: segButtons($('viewBar'), [{ key: 'persp', label: '透视' }, { key: 'plan', label: '俯视' }], (k) => { ui.view = k; orbit.enabled = k === 'persp'; plan.enabled = k === 'plan'; renderUI(); buildLabels(modelOf(ui.model)); render(); }),
+  view: segButtons($('viewBar'), [{ key: 'persp', label: '透视' }, { key: 'plan', label: '俯视' }, { key: 'house', label: '全屋' }], (k) => { ui.view = k; orbit.enabled = k === 'persp'; plan.enabled = k !== 'persp'; renderUI(); buildLabels(modelOf(ui.model)); if (k !== 'persp') frameOrtho(); render(); }),
   light: segButtons($('lightBar'), [{ key: 'day', label: '昼' }, { key: 'night', label: '夜' }], (k) => { ui.light = k; renderUI(); buildLights(); render(); }),
   state: segButtons($('stateBar'), STATES, (k) => { if (k === ui.state) return; const from = ui.state; ui.state = k; renderUI(); transition(from, k); }),
 };
@@ -779,9 +845,10 @@ function showError(e) {
   $('gl').hidden = true;
   const items = resolveState(modelOf(ui.model), 'daily').filter((i) => i.mount === 'floor' || i.deck);
   const pts = ROOM.map(([x, y]) => `${x},${y}`).join(' ');
-  const rects = items.map((i) => `<rect x="${i.x}" y="${i.y}" width="${i.w}" height="${i.d}" fill="${MATERIALS[i.mat].color}" style="stroke:var(--c-text-2)" stroke-width="15"/>`).join('');
+  const rooms = HOUSE_ROOMS.map((r) => `<polygon points="${r.poly.map(([x, y]) => `${x},${y}`).join(' ')}" fill="none" style="stroke:var(--c-text-2)" stroke-width="30"/>`).join('');
+  const rects = [...items, ...houseItems(ui.model).filter((i) => !i.z)].map((i) => `<rect x="${i.x}" y="${i.y}" width="${i.w}" height="${i.d}" fill="${MATERIALS[i.mat].color}" style="stroke:var(--c-text-2)" stroke-width="15"/>`).join('');
   box.innerHTML = `<div>无法创建 WebGL 上下文，3D 模型不可用（${esc(e.message)}）。请换用支持 WebGL 的浏览器。下面是同一数据绘制的收起态俯视平面。</div>`
-    + `<svg viewBox="-1500 -800 5200 9100" role="img" aria-label="收起态俯视平面"><polygon points="${pts}" fill="none" style="stroke:var(--c-text)" stroke-width="30"/>${rects}</svg>`;
+    + `<svg viewBox="-6100 -6600 11700 15900" role="img" aria-label="收起态全屋俯视平面">${rooms}<polygon points="${pts}" fill="none" style="stroke:var(--c-text)" stroke-width="30"/>${rects}</svg>`;
 }
 
 // 测试钩子：截图脚本用它定格变形过程中的某一帧（不影响正常交互）
