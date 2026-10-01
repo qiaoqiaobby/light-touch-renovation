@@ -19,21 +19,21 @@ export function buildRooms(stateKeys) {
 
   // 三个方案共用几何、只换材料的构件
   const wardrobeA = (pre, mat) => ({ id: `${pre}Wardrobe`, name: '衣柜（原柜体换门板）', shape: 'cabinet', x: -3460, y: -4050, w: 600, d: 2400, h: 2400, mat, mat2: 'walnutIn',
-    access: { side: 'e', depth: 450 }, facade: { face: 'e', toe: 60, doors: along(-4050, -1650, 4, 60, 2400) } });
+    access: { side: 'e', depth: 450 }, facade: { face: 'e', toe: 60, doors: along(-4050, -1650, 6, 60, 2400) } });
   const wardrobeB = (pre, mat) => ({ id: `${pre}WardrobeB`, name: '衣柜（原柜体换门板）', shape: 'cabinet', x: -4790, y: 1350, w: 1680, d: 600, h: 2400, mat, mat2: 'walnutIn',
-    access: { side: 'n', depth: 450 }, facade: { face: 'n', toe: 60, doors: along(-4790, -3110, 3, 60, 2400) } });
+    access: { side: 'n', depth: 450 }, facade: { face: 'n', toe: 60, doors: along(-4790, -3110, 4, 60, 2400) } });
   const sillA = (pre, mat, h = 80) => ({ id: `${pre}SillA`, name: '窗龛坐垫', shape: 'cushion', x: -2950, y: -6180, w: 2270, d: 680, h, z: 450, mat, mount: 'on' });
   const bayB = (pre, mat, h = 80) => ({ id: `${pre}BayB`, name: '转角飘窗坐垫', shape: 'cushion', x: -5560, y: -2020, w: 720, d: 1170, h, z: 450, mat, mount: 'on' });
-  const deskChair = (pre) => ({ id: `${pre}Chair`, name: '书桌椅', shape: 'chair', carried: true, x: -4500, y: -1500, w: 450, d: 450, h: 800, face: 'n', mat: 'oakPale', mat2: 'steelBlack', only: NOT_GUESTS });
+  const deskChair = (pre, x = -4500) => ({ id: `${pre}Chair`, name: '书桌椅', shape: 'chair', carried: true, x, y: -1500, w: 450, d: 450, h: 800, face: 'n', mat: 'oakPale', mat2: 'steelBlack', only: NOT_GUESTS });
   const zaisu = (id, x, face) => ({ id, name: '带靠背地面座椅', shape: 'zaisu', carried: true, x, y: -440, w: 400, d: 400, h: 450, z: 300, face, mat: 'linenSand', mat2: 'hinoki', mount: 'deck', only: NOT_GUESTS });
 
   // 厨房：保持 L 形；北段洗衣机位（燃气热水器在其上方，不做叠放）与储物高柜，门旁嵌烤箱的高柜，吊柜下灯带
   const kitchen = (pre, door, top) => inRoom('kitchen', [
-    { id: `${pre}KE`, name: '东墙地柜', shape: 'cabinet', x: 4540, y: 5400, w: 600, d: 3450, h: 820, mat: door, mat2: 'walnutIn', facade: { face: 'w', toe: 80, doors: along(5400, 8850, 6, 80, 820) } },
+    { id: `${pre}KE`, name: '东墙地柜', shape: 'cabinet', x: 4540, y: 5400, w: 600, d: 3450, h: 820, mat: door, mat2: 'walnutIn', facade: { face: 'w', toe: 80, doors: along(5400, 8250, 5, 80, 820) } }, // y 8250 以南是转角盲区（南墙地柜端面），不设门
     { id: `${pre}KTopE`, name: '东墙台面', shape: 'slab', x: 4540, y: 5400, w: 600, d: 3450, h: 30, z: 820, mat: top, mount: 'on' },
-    { id: `${pre}KS`, name: '南墙地柜', shape: 'cabinet', x: 3390, y: 8250, w: 1150, d: 600, h: 820, mat: door, mat2: 'walnutIn', facade: { face: 'n', toe: 80, doors: along(3390, 4540, 2, 80, 820) } },
+    { id: `${pre}KS`, name: '南墙地柜', shape: 'cabinet', x: 3390, y: 8250, w: 1150, d: 600, h: 820, mat: door, mat2: 'walnutIn', facade: { face: 'n', toe: 80, doors: along(3590, 4540, 2, 80, 820) } }, // x 3590 以西在烤箱高柜背后，作盲区
     { id: `${pre}KTopS`, name: '南墙台面', shape: 'slab', x: 3390, y: 8250, w: 1150, d: 600, h: 30, z: 820, mat: top, mount: 'on' },
-    { id: `${pre}KUp`, name: '东墙吊柜（到 2.4 m）', shape: 'cabinet', x: 4790, y: 5400, w: 350, d: 3450, h: 900, z: 1500, mat: door, mat2: 'walnutIn', mount: 'wall', facade: { face: 'w', doors: along(5400, 8850, 6, 1500, 2400) } },
+    { id: `${pre}KUp`, name: '东墙吊柜（到 2.4 m）', shape: 'cabinet', x: 4790, y: 5400, w: 350, d: 3450, h: 900, z: 1500, mat: door, mat2: 'walnutIn', mount: 'wall', facade: { face: 'w', doors: along(5400, 8250, 5, 1500, 2400) } }, // 转角段正对油烟机侧面，不设门
     { id: `${pre}KLed`, name: '吊柜下灯带', shape: 'led', x: 4800, y: 5420, w: 30, d: 3410, h: 10, z: 1488, mat: 'ledStrip', mount: 'wall', light: 'area', lightDir: 'down' },
     { id: `${pre}KPantry`, name: '储物高柜', shape: 'cabinet', x: 4540, y: 4800, w: 600, d: 600, h: 2400, mat: door, mat2: 'walnutIn', facade: { face: 'w', toe: 80, doors: [[4800, 5400, 80, 2400]] } },
     { id: `${pre}KWasher`, name: '洗衣机（新）', shape: 'box', x: 4540, y: 4150, w: 600, d: 600, h: 850, mat: 'plasticWhite' },
@@ -48,10 +48,13 @@ export function buildRooms(stateKeys) {
       { id: 'a4Panel', name: '床头护墙板（含灯槽与壁龛）', shape: 'cabinet', x: -270, y: -5350, w: 100, d: 3700, h: 2400, mat: 'oakPale', mat2: 'walnutIn', mount: 'wall',
         facade: { face: 'w', recesses: [{ a: [-4400, -2700], z: [950, 1150], depth: 60 }, { a: [-4950, -4550], z: [550, 900], depth: 80 }, { a: [-2550, -2150], z: [550, 900], depth: 80 }] } },
       { id: 'a4Led', name: '床头灯槽', host: 'a4Panel', shape: 'led', x: -265, y: -4400, w: 50, d: 1700, h: 10, z: 1135, mat: 'ledStrip', mount: 'wall', light: 'area', lightDir: 'down' },
+      // 壁龛只有 80 深（护墙板 100 厚，床尾到衣柜 590 不能再让），龛内嵌一块 180 深的托台，伸出板面 100，放得下书和水杯
+      { id: 'a4TrayN', name: '床头托台', host: 'a4Panel', shape: 'slab', x: -370, y: -4950, w: 180, d: 400, h: 30, z: 550, mat: 'oakPale', mount: 'wall' },
+      { id: 'a4TrayS', name: '床头托台', host: 'a4Panel', shape: 'slab', x: -370, y: -2550, w: 180, d: 400, h: 30, z: 550, mat: 'oakPale', mount: 'wall' },
       { id: 'a4Bed', name: '双人床 1800', shape: 'daybed', face: 'w', x: -2270, y: -4450, w: 2000, d: 1800, h: 300, mat: 'oakPale', mat2: 'linenSand', sleeps: 2 },
       wardrobeA('a4', 'oakPale'),
-      { id: 'a4Partner', name: '伴侣衣柜（门廊）', shape: 'cabinet', x: -1370, y: -1650, w: 550, d: 780, h: 2400, mat: 'oakPale', mat2: 'walnutIn',
-        access: { side: 'e', depth: 450 }, facade: { face: 'e', toe: 60, doors: along(-1650, -870, 2, 60, 2400) } },
+      { id: 'a4Partner', name: '伴侣衣柜（门廊）', shape: 'cabinet', x: -1370, y: -1650, w: 550, d: 690, h: 2400, mat: 'oakPale', mat2: 'walnutIn',
+        access: { side: 'e', depth: 450 }, facade: { face: 'e', toe: 60, doors: along(-1650, -960, 2, 60, 2400) } },
       sillA('a4', 'linenSand'),
     ]),
     ...inRoom('bedB', [
@@ -70,7 +73,7 @@ export function buildRooms(stateKeys) {
     ]),
     ...inRoom('bedC', [
       { id: 'c4North', name: '北墙衣柜', shape: 'cabinet', x: -2980, y: 1660, w: 1740, d: 600, h: 2400, mat: 'oakPale', mat2: 'walnutIn',
-        access: { side: 's', depth: 450 }, facade: { face: 's', toe: 60, doors: along(-2980, -1240, 3, 60, 2400) } },
+        access: { side: 's', depth: 450 }, facade: { face: 's', toe: 60, doors: along(-2980, -1240, 4, 60, 2400) } },
       { id: 'c4East', name: '东墙衣柜', shape: 'cabinet', x: -720, y: 2600, w: 600, d: 1100, h: 2400, mat: 'oakPale', mat2: 'walnutIn',
         access: { side: 'w', depth: 450 }, facade: { face: 'w', toe: 60, doors: along(2600, 3700, 2, 60, 2400) } },
       { id: 'c4Bench', name: '窗下抽屉矮柜（行李台）', shape: 'cabinet', x: -2980, y: 2750, w: 450, d: 950, h: 450, mat: 'oakPale', mat2: 'walnutIn',
@@ -135,13 +138,14 @@ export function buildRooms(stateKeys) {
       sillA('a6', 'linenStone'),
     ]),
     ...inRoom('bedB', [
-      { id: 'b6Sofa', name: '低矮沙发床', shape: 'sofa', face: 's', x: -3800, y: -1530, w: 2000, d: 900, h: 700, mat: 'linenStone', mat2: 'linenStone' },
-      // 床架平时收在座下，父母来住时沿轨道拉出 1100；床垫由沙发靠垫与收纳的床垫铺成
-      { id: 'b6Pull', name: '拉出床架', host: 'b6Sofa', shape: 'box', x: -3650, y: -1230, w: 1500, d: 500, h: 300, z: 80, mat: 'oakPale', mount: 'stowed',
-        states: { guests: { y: -630, d: 1100, mount: 'floor' } } },
-      { id: 'b6Mat', name: '床垫（1500 × 1800）', host: 'b6Sofa', shape: 'cushion', carried: true, x: -3650, y: -1330, w: 1500, d: 1800, h: 120, z: 380, mat: 'bedding', soft: true, sleeps: 2, only: ['guests'] },
+      // 沙发偏西：拉出的床角离门洞两端都 ≥ 890（门宽 840），门轴在哪一端原门都能开
+      { id: 'b6Sofa', name: '低矮沙发床', shape: 'sofa', face: 's', x: -4050, y: -1530, w: 2000, d: 900, h: 700, mat: 'linenStone', mat2: 'linenStone' },
+      // 床架平时收在座下，父母来住时沿轨道拉出 1200；床垫由沙发靠垫与收纳的床垫铺成
+      { id: 'b6Pull', name: '拉出床架', host: 'b6Sofa', shape: 'box', x: -3900, y: -1230, w: 1500, d: 500, h: 300, z: 80, mat: 'oakPale', mount: 'stowed',
+        states: { guests: { y: -630, d: 1200, mount: 'floor' } } },
+      { id: 'b6Mat', name: '床垫（1500 × 1900）', host: 'b6Sofa', shape: 'cushion', carried: true, x: -3900, y: -1330, w: 1500, d: 1900, h: 120, z: 380, mat: 'bedding', soft: true, sleeps: 2, only: ['guests'] },
       { id: 'b6Desk', name: '带锁定脚轮的书桌', shape: 'table', x: -4790, y: -2070, w: 1000, d: 520, h: 750, mat: 'oakPale', mat2: 'steelBlack' },
-      deskChair('b6'),
+      deskChair('b6', -4550), // 沙发西移后，椅子随之西移 50，不贴沙发
       wardrobeB('b6', 'yakisugi'),
       bayB('b6', 'linenStone'),
     ]),
@@ -170,8 +174,8 @@ export const ROOM_META = {
     guests: { list: ['拉开卧室 B 推拉门', '解锁壁床，向下翻放', '翻出床尾支腿'], sec: 30 },
     rooms: [
       { room: 'bedA', changes: [
-        { level: 'L3', text: '东墙 100 厚浅橡木护墙板，床头灯槽与两侧壁龛代替床头柜', rev: '较难逆转', basis: '#3、#22' },
-        { level: 'L3', text: '门廊西侧伴侣衣柜 550 × 780，让开门扇扫掠范围，门廊留 550 通道', rev: '较难逆转', basis: '伴侣同住；#25' },
+        { level: 'L3', text: '东墙 100 厚浅橡木护墙板，床头灯槽；两侧壁龛嵌 180 深托台，代替床头柜', rev: '较难逆转', basis: '#3、#22' },
+        { level: 'L3', text: '门廊西侧伴侣衣柜 550 × 690，门轴在哪一端都让开门扇扫掠范围，门廊最窄处留 550', rev: '较难逆转', basis: '伴侣同住；#25' },
         { level: 'L2', text: '原衣柜换无把手浅橡木门板；窗龛坐垫', rev: '部分可逆', basis: '#12、#22' }] },
       { room: 'bedB', changes: [
         { level: 'L3', text: '北墙竖翻壁床柜 1600 × 350 × 2400，内收 1500 × 2000 床，床面高 550', rev: '较难逆转', basis: '#9：客房平时有用' },
@@ -210,7 +214,7 @@ export const ROOM_META = {
         { level: 'L1', text: '1800 低床、两只带轮边几；门廊天花轨道亚麻帘，作息不同时拉上', rev: '可逆', basis: '伴侣同住；#7' },
         { level: 'L2', text: '原衣柜换烧杉色门板', rev: '部分可逆', basis: '#22' }] },
       { room: 'bedB', changes: [
-        { level: 'L1', text: '北墙低矮沙发床：床架沿轨道拉出 1100，睡面 1500 × 1800；偏西放置，原门保留', rev: '可逆', basis: '#9、#13' },
+        { level: 'L1', text: '北墙低矮沙发床：床架沿轨道拉出 1200，睡面 1500 × 1900；偏西放置，门轴在哪一端原门都可保留', rev: '可逆', basis: '#9、#13' },
         { level: 'L1', text: '窗下带锁定脚轮的书桌', rev: '可逆', basis: '#16' },
         { level: 'L2', text: '衣柜换烧杉色门板', rev: '部分可逆', basis: '#22' }] },
       { room: 'bedC', changes: [

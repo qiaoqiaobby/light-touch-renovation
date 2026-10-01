@@ -119,6 +119,8 @@ export const HOUSE_DOORS = [
 
 // 方案校验用的可达目标：从门内净空中心出发，净宽 ≥ 500 能走到（床位另按床边判断）
 export const HOUSE_REACH = [
+  { room: 'bedA', name: '衣柜前', x: -2560, y: -2100 },
+  { room: 'bedB', name: '衣柜前', x: -3400, y: 1090 },
   { room: 'bedC', name: '北墙衣柜前', x: -2100, y: 2530 },
   { room: 'bedC', name: '一体柜前', x: -1180, y: 3480 },
   { room: 'kitchen', name: '水槽前', x: 4270, y: 7050 },

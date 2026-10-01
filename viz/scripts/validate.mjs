@@ -243,8 +243,13 @@ function roomChecks(model, st, roomItems) {
       check(...tag, `${dr.name}内 600 净空`, block.length === 0, block.map((o) => o.name).join('、'));
       const sliding = model.doors && model.doors[R] === 'sliding';
       if (dr.swing && !sliding) {
-        const sw = solids.filter((o) => (o.z || 0) < 2000 && hitsSwing(o, dr.swing));
-        check(...tag, `${dr.name}门扇扫掠范围内无实体`, sw.length === 0, sw.map((o) => o.name).join('、'));
+        // 门轴位置是读图推断（待现场复核），门轴在门洞另一端时也必须成立；净空矩形沿墙的边长等于门宽即横墙
+        const s0 = dr.swing, horiz = dr.w === s0.r;
+        const mirror = horiz ? { ...s0, hinge: [s0.hinge[0] + s0.qx * s0.r, s0.hinge[1]], qx: -s0.qx } : { ...s0, hinge: [s0.hinge[0], s0.hinge[1] + s0.qy * s0.r], qy: -s0.qy };
+        for (const [label, swing] of [['', s0], ['（门轴在另一端）', mirror]]) {
+          const sw = solids.filter((o) => (o.z || 0) < 2000 && hitsSwing(o, swing));
+          check(...tag, `${dr.name}门扇扫掠范围内无实体${label}`, sw.length === 0, sw.map((o) => o.name).join('、'));
+        }
       }
     }
     const blocked = [];
@@ -253,6 +258,20 @@ function roomChecks(model, st, roomItems) {
       for (const o of solids) if (o.id !== it.id && !related(it, o) && overlap3(zone, o)) blocked.push(`${it.name}前被${o.name}占用`);
     }
     if (mine.some((r) => r.part.access)) check(...tag, '柜门前净空', blocked.length === 0, blocked.join('、'));
+    // 柜门扇宽：facade.doors 一律为平开门板，门前到最近实体（门板高度范围内）的净深须不小于门扇宽，否则门开不到 90°
+    const leafHits = [];
+    for (const c of mine.filter((r) => r.part.facade && r.part.facade.doors)) {
+      const f = c.part.facade.face;
+      for (const [a0, a1, z0, z1] of c.part.facade.doors) {
+        const L = a1 - a0;
+        const zone = f === 'n' ? { x: a0, w: L, y: c.y - L, d: L } : f === 's' ? { x: a0, w: L, y: c.y + c.d, d: L }
+          : f === 'w' ? { y: a0, d: L, x: c.x - L, w: L } : { y: a0, d: L, x: c.x + c.w, w: L };
+        Object.assign(zone, { z: z0, h: z1 - z0 });
+        const o = solids.find((q) => q.id !== c.id && !related(c, q) && overlap3(zone, q));
+        if (o) leafHits.push(`${c.name}门扇 ${Math.round(L)} 被${o.name}挡`);
+      }
+    }
+    if (mine.some((r) => r.part.facade && r.part.facade.doors)) check(...tag, '柜门扇宽 ≤ 门前净深', leafHits.length === 0, [...new Set(leafHits)].join('、'));
     // 床位数：主卧任何状态 ≥ 2；卧室 B 父母来住 ≥ 2、平时为 0（平时不是一间空客房）
     const beds = mine.filter(active), sleeps = beds.reduce((n, b) => n + b.part.sleeps, 0);
     if (R === 'bedA') check(...tag, '主卧床位 ≥ 2', sleeps >= 2, `${sleeps} 个`);

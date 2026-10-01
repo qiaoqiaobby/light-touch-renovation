@@ -39,11 +39,16 @@ const MUTATIONS = [
   { name: '书桌伸进壁床翻转范围（只有扫掠能发现）', file: ROOMS, from: "{ id: 'b4Desk', name: '窗下书桌', shape: 'slab', x: -4790, y: -2070, w: 1050,", to: "{ id: 'b4Desk', name: '窗下书桌', shape: 'slab', x: -4790, y: -1100, w: 1300,", expect: ['方案四', '扫掠'] },
   { name: '方案四卧室 B 改回平开门', file: ROOMS, from: "doors: { bedB: 'sliding' },", to: 'doors: {},', expect: ['方案四', '卧室 B 门门扇扫掠'] },
   { name: '和室地台伸进门扇扫掠范围', file: ROOMS, from: "{ id: 'b5Deck', name: '和室地台', shape: 'deck', x: -4790, y: -1530, w: 2390,", to: "{ id: 'b5Deck', name: '和室地台', shape: 'deck', x: -4790, y: -1530, w: 2700,", expect: ['方案五', '卧室 B 门门扇扫掠'] },
-  { name: '沙发床拉出越界', file: ROOMS, from: "states: { guests: { y: -630, d: 1100, mount: 'floor' } } },", to: "states: { guests: { y: -630, d: 2900, mount: 'floor' } } },", expect: ['方案六', '构件在房间内'] },
+  { name: '沙发床拉出越界', file: ROOMS, from: "states: { guests: { y: -630, d: 1200, mount: 'floor' } } },", to: "states: { guests: { y: -630, d: 2900, mount: 'floor' } } },", expect: ['方案六', '构件在房间内'] },
   { name: '父母来住少一床被褥', file: ROOMS, from: "x: -4600, y: -380, w: 2000, d: 1000, h: 80, z: 300, mat: 'bedding', mount: 'deck', soft: true, sleeps: 1, only: ['guests'] },", to: "x: -4600, y: -380, w: 2000, d: 1000, h: 80, z: 300, mat: 'bedding', mount: 'deck', soft: true, sleeps: 1, only: ['movie'] },", expect: ['方案五', '父母来住床位'] },
   { name: '衣帽间衣柜挡门', file: ROOMS, from: "{ id: 'c4North', name: '北墙衣柜', shape: 'cabinet', x: -2980, y: 1660, w: 1740,", to: "{ id: 'c4North', name: '北墙衣柜', shape: 'cabinet', x: -2980, y: 1660, w: 2200,", expect: ['方案四', '卧室 C 门内 600 净空'] },
   { name: '替换件名称拼错（旧台盆柜与新台盆柜叠在一起）', file: ROOMS, from: "'kitchen/东墙吊柜', 'bath/台盆柜'];", to: "'kitchen/东墙吊柜', 'bath/台盆'];", expect: ['全屋', '替换的固定件都存在'] },
   { name: '伴侣衣柜加深到 650，门廊过不去', file: ROOMS, from: "{ id: 'a4Partner', name: '伴侣衣柜（门廊）', shape: 'cabinet', x: -1370, y: -1650, w: 550,", to: "{ id: 'a4Partner', name: '伴侣衣柜（门廊）', shape: 'cabinet', x: -1370, y: -1650, w: 650,", expect: ['方案四', '可达'] },
+  // 全屋设计审查（2026-09-30）补的守护
+  { name: '卧室 B 衣柜改回 3 扇 560 宽门（方案五地台前开不到 90°）', file: ROOMS, from: 'doors: along(-4790, -3110, 4, 60, 2400)', to: 'doors: along(-4790, -3110, 3, 60, 2400)', expect: ['方案五', '柜门扇宽'] },
+  { name: '南墙地柜门板改回从 x 3390 起（首扇被烤箱高柜挡）', file: ROOMS, from: 'doors: along(3590, 4540, 2, 80, 820)', to: 'doors: along(3390, 4540, 2, 80, 820)', expect: ['厨房', '柜门扇宽'] },
+  { name: '伴侣衣柜改回深 780（门轴在另一端时被门扇扫到）', file: ROOMS, from: "y: -1650, w: 550, d: 690,", to: "y: -1650, w: 550, d: 780,", expect: ['方案四', '门轴在另一端'] },
+  { name: '卧室 B 衣柜前放一只箱子', file: ROOMS, from: "      deskChair('b6', -4550),", to: "      deskChair('b6', -4550),\n      { id: 'probeB', name: '变异测试箱', shape: 'box', x: -4790, y: 850, w: 1680, d: 300, h: 600, mat: 'oakPale' },", expect: ['方案六', '衣柜前'] },
 ];
 
 let caught = 0;

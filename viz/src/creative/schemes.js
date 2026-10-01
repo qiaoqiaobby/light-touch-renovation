@@ -2,7 +2,7 @@
 // 构件字段见 rig.js；另有：shape 绘制方式，mat/mat2 材质，face 座位朝向，cover 地面覆盖物或与台面齐平的盖板，
 // occupied 运动时被占用，deck 地台面（可站立、可运动），seat 餐座数，access 门前净空，light 夜间光源（1 点光源，'area' 面光源），
 // host 所属柜体（与宿主之间不算冲突），dock 可移动体块的定位点，wallEdge 贴在哪面墙上（该墙被剖切隐藏时一并隐藏）
-// facade（shape 'cabinet'）：doors 为门板 [a0, a1, z0, z1]，recesses 为凹槽 { face, a: [a0, a1], z: [z0, z1], depth, shelves }，
+// facade（shape 'cabinet'）：doors 为门板 [a0, a1, z0, z1]（一律为平开门，门扇宽即开启所需的门前净深），recesses 为凹槽 { face, a: [a0, a1], z: [z0, z1], depth, shelves }，
 // face 为正面朝向（'w' 朝西、'n' 朝北、's' 朝南）；a 为沿正面水平方向的坐标（朝西时取 y，朝南北时取 x）
 // zones 可带 only，仅在列出的使用状态显示
 import { MODELS as BASE } from '../schemes.js';
