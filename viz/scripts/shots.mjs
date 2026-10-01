@@ -99,6 +99,36 @@ try {
     n += 2;
   }
 
+  // 全屋设计（页面二）：每个方案 × 5 个房间视角，各截「收起」与「父母来住」；卧室 B 再截夜间与变形三帧
+  if (kind === 'creative') {
+    const ROOMS = [['卧室 A', 'bedA'], ['卧室 B', 'bedB'], ['卧室 C', 'bedC'], ['卫生间', 'bath'], ['厨房', 'kitchen']];
+    await click('lightBar', '昼');
+    for (const m of MODELS.filter((x) => x.key !== 'current')) {
+      await click('modelBar', m.label);
+      for (const [label, key] of ROOMS) {
+        await click('roomBar', label);
+        for (const st of [STATES[0], STATES.find((x) => x.key === 'guests')]) {
+          await click('stateBar', st.label);
+          await shot(`room-${m.key}-${key}-${st.key}`);
+          n++;
+        }
+      }
+      await click('roomBar', '卧室 B');
+      await click('lightBar', '夜');
+      await shot(`room-${m.key}-bedB-guests-night`);
+      await click('lightBar', '昼');
+      await click('stateBar', STATES[0].label);
+      for (const t of [0, 0.5, 1]) {
+        await evaluate(`window.__viz.seek('daily', 'guests', ${t})`);
+        await shot(`anim-${m.key}-daily-guests-${Math.round(t * 100)}`);
+        n++;
+      }
+      await evaluate(`window.__viz.settle('daily')`);
+      n++;
+      await click('roomBar', '客厅');
+    }
+  }
+
   if (kind === 'creative') {
     await click('viewBar', '透视');
     await click('lightBar', '昼');

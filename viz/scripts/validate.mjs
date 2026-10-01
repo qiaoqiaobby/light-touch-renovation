@@ -2,7 +2,7 @@
 // 1 物体在房间内  2 落地物体互不重叠  3 主路线净宽 ≥ 800 可达（运动状态下瑜伽垫视为占用）
 // 4 运动状态在方案声明的运动区内有 ≥ 2000×1000 空地，且瑜伽垫位于运动区内  5 多人聚会 ≥ 6 座、双人餐 ≥ 2 座
 import { ROOM, FIXED, ROUTE, WALL_T, OPENINGS } from '../src/geometry.js';
-import { HOUSE_ROOMS, HOUSE_WALLS, HOUSE_ITEMS, HOUSE_DOORS, wallBoxes, houseItems } from '../src/house.js';
+import { HOUSE_ROOMS, HOUSE_WALLS, HOUSE_ITEMS, HOUSE_DOORS, HOUSE_REACH, wallBoxes, houseItems } from '../src/house.js';
 import { MODELS, STATES, resolveItems } from '../src/schemes.js';
 import { MODELS as MODELS2, STATES as STATES2 } from '../src/creative/schemes.js';
 import { resolveState, poseAll, overlap3, freeRatio, present, legsOf, facadePanels, paramsOf } from '../src/creative/rig.js';
@@ -158,13 +158,130 @@ const accessZone = (it) => {
     : { x: it.x + it.w, y: it.y, w: depth, d: it.d, z: 0, h: 2000 };
 };
 const FIXED3 = FIXED.map((f) => ({ ...f, z: 0, mount: 'floor' }));
+
+// ───── 全屋设计：各方案其他房间的检查 ─────
+// 保留下来（未被方案替换）的 house.js 固定件，作为静止实体参与重叠、门前净空、扫掠与通行
+const houseFixed3 = (model) => houseItems(model.key, model.replaces || []).filter((it) => it.kind === 'fixed')
+  .map((it) => ({ ...it, id: `house:${it.room}/${it.name}`, z: it.z || 0, mount: 'floor', fixed: true }));
+const solidR = (r) => !r.soft && r.mount !== 'ceiling' && !(r.cover && (r.z || 0) < 20);
+const active = (r) => r.part && r.part.sleeps && (r.kind !== 'hinge' || Math.abs(r.angle) < 1);
+// 矩形是否与门扇扫掠的四分之一圆相交
+function hitsSwing(r, sw) {
+  const [hx, hy] = sw.hinge;
+  const x0 = sw.qx > 0 ? Math.max(r.x, hx) : r.x, x1 = sw.qx > 0 ? r.x + r.w : Math.min(r.x + r.w, hx);
+  const y0 = sw.qy > 0 ? Math.max(r.y, hy) : r.y, y1 = sw.qy > 0 ? r.y + r.d : Math.min(r.y + r.d, hy);
+  if (x1 <= x0 || y1 <= y0) return false;
+  const cx = Math.max(x0, Math.min(hx, x1)), cy = Math.max(y0, Math.min(hy, y1));
+  return Math.hypot(cx - hx, cy - hy) < sw.r - 1;
+}
+// 房间内通行：25 mm 栅格，格心离墙与障碍 ≥ 250（净宽 ≥ 500）；地台可行走
+function roomReach(room, blockers, start) {
+  const P = room.poly, xs = P.map((q) => q[0]), ys = P.map((q) => q[1]);
+  const X0 = Math.min(...xs), Y0 = Math.min(...ys), NXr = Math.ceil((Math.max(...xs) - X0) / CELL), NYr = Math.ceil((Math.max(...ys) - Y0) / CELL);
+  const edgeDist = (px, py) => {
+    let d = Infinity;
+    for (let i = 0; i < P.length; i++) {
+      const [x1, y1] = P[i], [x2, y2] = P[(i + 1) % P.length], dx = x2 - x1, dy = y2 - y1;
+      const t = Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy)));
+      d = Math.min(d, Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy)));
+    }
+    return d;
+  };
+  const free = new Uint8Array(NXr * NYr);
+  for (let j = 0; j < NYr; j++) for (let i = 0; i < NXr; i++) {
+    const x = X0 + (i + 0.5) * CELL, y = Y0 + (j + 0.5) * CELL;
+    if (!inPolyP(P, x, y) || edgeDist(x, y) < 250 || blockers.some((b) => distToRect(x, y, b) < 250)) continue;
+    free[j * NXr + i] = 1;
+  }
+  const seen = new Uint8Array(NXr * NYr);
+  const at = (x, y) => [Math.floor((x - X0) / CELL), Math.floor((y - Y0) / CELL)];
+  const [si, sj] = at(start.x, start.y);
+  if (si >= 0 && sj >= 0 && si < NXr && sj < NYr && free[sj * NXr + si]) {
+    const q = [[si, sj]];
+    seen[sj * NXr + si] = 1;
+    while (q.length) {
+      const [i, j] = q.pop();
+      for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const a = i + di, b = j + dj, k = b * NXr + a;
+        if (a >= 0 && b >= 0 && a < NXr && b < NYr && free[k] && !seen[k]) { seen[k] = 1; q.push([a, b]); }
+      }
+    }
+  }
+  // 目标点落在的格子可能因栅格对齐而差几毫米不满足净宽，取 3 × 3 邻域任一格可达
+  return (x, y) => {
+    const [i, j] = at(x, y);
+    for (let a = i - 1; a <= i + 1; a++) for (let b = j - 1; b <= j + 1; b++) if (a >= 0 && b >= 0 && a < NXr && b < NYr && seen[b * NXr + a]) return true;
+    return false;
+  };
+}
+// 床边：长边外侧 260 处每 100 取样，任一点可达即该边可达
+function bedSides(b) {
+  const longX = b.w >= b.d, pts = (fixed, a0, a1, horiz) => {
+    const out = [];
+    for (let a = a0 + 150; a <= a1 - 150; a += 100) out.push(horiz ? [a, fixed] : [fixed, a]);
+    return out;
+  };
+  const N = pts(b.y - 260, b.x, b.x + b.w, true), S = pts(b.y + b.d + 260, b.x, b.x + b.w, true);
+  const W = pts(b.x - 260, b.y, b.y + b.d, false), E = pts(b.x + b.w + 260, b.y, b.y + b.d, false);
+  return { long: longX ? [['北', N], ['南', S]] : [['西', W], ['东', E]], all: [['北', N], ['南', S], ['西', W], ['东', E]] };
+}
+function roomChecks(model, st, roomItems) {
+  if (!model.rooms) return;
+  const fixed = houseFixed3(model);
+  for (const room of HOUSE_ROOMS) {
+    const R = room.id, tag = [model.label, `${st.label} · ${room.name}`];
+    const mine = roomItems.filter((r) => r.part.room === R);
+    const solids = [...mine.filter(solidR), ...fixed.filter((f) => f.room === R)];
+    const out = mine.filter((r) => !rectInPoly(room.poly, r));
+    check(...tag, '构件在房间内', out.length === 0, out.map((r) => r.name).join('、'));
+    const hits = [];
+    for (let i = 0; i < solids.length; i++) for (let j = i + 1; j < solids.length; j++)
+      if (!related(solids[i], solids[j]) && overlap3(solids[i], solids[j])) hits.push(`${solids[i].name}×${solids[j].name}`);
+    check(...tag, '实体互不重叠（含保留的固定件）', hits.length === 0, hits.join('、'));
+    for (const dr of HOUSE_DOORS.filter((d) => d.room === R)) {
+      const block = solids.filter((o) => (o.z || 0) < 2000 && overlap(o, dr));
+      check(...tag, `${dr.name}内 600 净空`, block.length === 0, block.map((o) => o.name).join('、'));
+      const sliding = model.doors && model.doors[R] === 'sliding';
+      if (dr.swing && !sliding) {
+        const sw = solids.filter((o) => (o.z || 0) < 2000 && hitsSwing(o, dr.swing));
+        check(...tag, `${dr.name}门扇扫掠范围内无实体`, sw.length === 0, sw.map((o) => o.name).join('、'));
+      }
+    }
+    const blocked = [];
+    for (const it of mine.filter((r) => r.part.access)) {
+      const zone = accessZone({ ...it, access: it.part.access });
+      for (const o of solids) if (o.id !== it.id && !related(it, o) && overlap3(zone, o)) blocked.push(`${it.name}前被${o.name}占用`);
+    }
+    if (mine.some((r) => r.part.access)) check(...tag, '柜门前净空', blocked.length === 0, blocked.join('、'));
+    // 床位数：主卧任何状态 ≥ 2；卧室 B 父母来住 ≥ 2、平时为 0（平时不是一间空客房）
+    const beds = mine.filter(active), sleeps = beds.reduce((n, b) => n + b.part.sleeps, 0);
+    if (R === 'bedA') check(...tag, '主卧床位 ≥ 2', sleeps >= 2, `${sleeps} 个`);
+    if (R === 'bedB' && st.key === 'guests') check(...tag, '父母来住床位 ≥ 2', sleeps >= 2, `${sleeps} 个`);
+    if (R === 'bedB' && st.key === 'daily') check(...tag, '平时不留床（书房 / 和室）', sleeps === 0, `${sleeps} 个`);
+    // 通行：从门内净空中心出发，净宽 ≥ 500 到达各目标与床边（双人床两条长边都要到得了）
+    const door = HOUSE_DOORS.find((d) => d.room === R);
+    // 障碍：离地 1 m 以下的实体；地台可行走；100 mm 及以下的地面件（蹲便、淋浴地面、踏板）可跨过
+    const blockers = [...solids.filter((o) => (o.z || 0) < 1000 && !o.deck && o.h > 100), ...beds];
+    const reach = roomReach(room, blockers, { x: door.x + door.w / 2, y: door.y + door.d / 2 });
+    const miss = HOUSE_REACH.filter((t) => t.room === R && !reach(t.x, t.y)).map((t) => t.name);
+    for (const b of beds) {
+      const sides = bedSides(b);
+      const ok = sides[b.part.sleeps >= 2 ? 'long' : 'all'].map(([n, pts]) => [n, pts.some(([x, y]) => reach(x, y))]);
+      if (b.part.sleeps >= 2) for (const [n, v] of ok) { if (!v) miss.push(`${b.name}${n}侧`); }
+      else if (!ok.some(([, v]) => v)) miss.push(`${b.name}`);
+    }
+    if (HOUSE_REACH.some((t) => t.room === R) || beds.length) check(...tag, '门到床边与操作位净宽 ≥ 500 可达', miss.length === 0, miss.length ? `不可达：${miss.join('、')}` : '');
+  }
+}
 const metrics2 = {};
 const keys2 = STATES2.map((s) => s.key);
 
 for (const model of MODELS2.filter((m) => m.key !== 'current')) {
   for (const st of STATES2) {
-    const items = resolveState(model, st.key);
+    const posed = resolveState(model, st.key);
+    const items = posed.filter((r) => !r.part.room); // 客厅构件；其他房间的构件在下面按房间检查
     const tag = [model.label, st.label];
+    roomChecks(model, st, posed.filter((r) => r.part.room));
 
     const outside = [...items, ...FIXED].filter((r) => !rectInside(r)).map((r) => r.name);
     check(...tag, '物体在房间内', outside.length === 0, outside.join('、'));
@@ -244,7 +361,7 @@ for (const model of MODELS2.filter((m) => m.key !== 'current')) {
     for (let s = 1; s < 40; s++) {
       const t = s / 40;
       const at = poseAll(model, A, B, t).filter((r) => both.some((p) => p.id === r.id));
-      const phys = [...at.filter((r) => r.mount !== 'ceiling' && !r.cover && !r.soft), ...FIXED3];
+      const phys = [...at.filter((r) => r.mount !== 'ceiling' && !r.cover && !r.soft), ...FIXED3, ...houseFixed3(model)];
       const atId = new Map(at.map((r) => [r.id, r]));
       for (const m of at.filter((r) => moving.has(r.id) && r.host && atId.has(r.host)))
         for (const pnl of facadePanels(atId.get(m.host))) if (overlap3(m, pnl)) sweep.push(`${A}→${B} ${Math.round(t * 100)}%：${m.name}×${pnl.name}`);
@@ -272,20 +389,20 @@ for (const [k, v] of Object.entries(metrics2)) {
 }
 
 // ───────── 全屋外壳（house.js）：只建模不做设计，检查几何自洽、物件归位、门前净空与比例偏差 ─────────
-const inPolyP = (poly, px, py) => {
+function inPolyP(poly, px, py) {
   let inside = false;
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
     const [xi, yi] = poly[i], [xj, yj] = poly[j];
     if ((yi > py) !== (yj > py) && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) inside = !inside;
   }
   return inside;
-};
+}
 const polyArea = (p) => Math.abs(p.reduce((s, [x, y], i) => { const [px, py] = p[(i + p.length - 1) % p.length]; return s + px * y - x * py; }, 0)) / 2;
-const rectInPoly = (poly, r) => {
+function rectInPoly(poly, r) {
   for (let x = r.x + 1; x <= r.x + r.w - 1; x += Math.min(CELL, Math.max(1, r.w - 2))) for (const y of [r.y + 1, r.y + r.d - 1]) if (!inPolyP(poly, x, y)) return false;
   for (let y = r.y + 1; y <= r.y + r.d - 1; y += Math.min(CELL, Math.max(1, r.d - 2))) for (const x of [r.x + 1, r.x + r.w - 1]) if (!inPolyP(poly, x, y)) return false;
   return true;
-};
+}
 // 客厅墙体矩形：与两页 buildShell 同一算法（沿各边向外推 WALL_T，外凸角补块）
 const outwardN = (x1, y1, x2, y2) => {
   let nx = y2 - y1, ny = -(x2 - x1);
@@ -383,6 +500,11 @@ const polys = [{ name: '客厅', poly: ROOM }, ...HOUSE_ROOMS.map((r) => ({ name
     const block = HOUSE_ITEMS.filter((it) => it.room === dr.room && (it.z || 0) < 2000 && overlap(it, dr));
     check(H, dr.name, '门内 600 净空无遮挡、贴着并对准门洞', rectInPoly(room.poly, dr) && cover >= 0.98 && gap <= 10 && block.length === 0,
       `对准 ${Math.round(cover * 100)}%，离墙面 ${Math.round(gap)} mm${block.length ? '；挡门：' + block.map((it) => it.name).join('、') : ''}`);
+  }
+  // 5b 方案声明替换的固定件必须存在（防止拼错名称后旧件与新件叠在一起）
+  for (const m of MODELS2.filter((x) => x.replaces)) {
+    const missing = m.replaces.filter((k) => !HOUSE_ITEMS.some((it) => `${it.room}/${it.name}` === k));
+    check(H, m.label, '替换的固定件都存在', missing.length === 0, missing.join('、'));
   }
   // 6 上一任住户的家具只出现在「现状」
   for (const m of [...MODELS, ...MODELS2]) {

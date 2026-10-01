@@ -15,7 +15,8 @@ import { MODELS, STATES } from './schemes.js';
 import { MATERIALS } from './materials.js';
 import { poseAll, resolveState, freeRatio, present, legsOf } from './rig.js';
 import { textureFor, worldUV } from './textures.js';
-import { HOUSE_ROOMS, HOUSE_ITEMS, HOUSE_NOTE, wallBoxes, itemBoxes, houseItems, houseBounds } from '../house.js';
+import { HOUSE_ROOMS, HOUSE_NOTE, CUT_H, wallBoxes, itemBoxes, houseItems, houseBounds } from '../house.js';
+import { ROLES } from './rooms.js';
 
 const M = 0.001;
 const $ = (id) => document.getElementById(id);
@@ -23,7 +24,7 @@ const cssVar = (name) => getComputedStyle(document.documentElement).getPropertyV
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const modelOf = (key) => MODELS.find((m) => m.key === key);
 
-const ui = { model: 's4', state: 'daily', view: 'persp', light: 'day' };
+const ui = { model: 's4', state: 'daily', view: 'persp', light: 'day', room: 'living' }; // room：透视相机对准的房间
 
 // 光照物理量（场景参数，非 UI 视觉数值）
 const LIGHT = {
@@ -51,6 +52,7 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = LIGHT.exposure;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 RectAreaLightUniformsLib.init();
+renderer.localClippingEnabled = true; // 其他房间的构件按剖切高度截断
 
 const scene = new THREE.Scene();
 const pmrem = new THREE.PMREMGenerator(renderer);
@@ -184,6 +186,14 @@ function buildPart(pose) {
       const len = it.len * M, th = it.thick * M, span = (it.s1 - it.s0) * M;
       const m = block(0, len, 0, th, -span / 2, span / 2, A, 0.002);
       g.add(m);
+      g.userData.hinge = true;
+      break;
+    }
+    case 'bedpanel': {
+      // 壁床板：局部 X 沿床长、Y 沿板厚（放平时向上）；下层 80 为床架（竖起时朝外，读作柜门），上层为床垫
+      const len = it.len * M, th = it.thick * M, span = (it.s1 - it.s0) * M, f = 0.08;
+      g.add(block(0, len, 0, f, -span / 2, span / 2, A, 0.003));
+      g.add(block(0.02, len - 0.02, f, th, -span / 2 + 0.02, span / 2 - 0.02, B, 0.02));
       g.userData.hinge = true;
       break;
     }
@@ -467,15 +477,34 @@ function buildHouse() {
     g.add(new THREE.Mesh(geo, houseMat(key)));
   }
   for (const b of wallBoxes()) g.add(houseMesh(b));
-  for (const it of HOUSE_ITEMS.filter((i) => i.kind === 'fixed')) for (const b of itemBoxes(it)) g.add(houseMesh(b));
   return g;
 }
-let housePrior = new THREE.Group(); // 「现状」才有的上一任住户家具，随模型切换重建
-function buildHousePrior(model) {
-  disposeGroup(housePrior);
-  housePrior = new THREE.Group();
-  for (const it of houseItems(model.key).filter((i) => i.kind === 'prior')) for (const b of itemBoxes(it)) housePrior.add(houseMesh(b));
-  scene.add(housePrior);
+// 固定件与上一任住户家具随模型重建：现状带旧家具，方案去掉被替换的固定件
+let houseItemsGroup = new THREE.Group();
+function buildHouseItems(model) {
+  disposeGroup(houseItemsGroup);
+  houseItemsGroup = new THREE.Group();
+  for (const it of houseItems(model.key, model.replaces || [])) for (const b of itemBoxes(it)) houseItemsGroup.add(houseMesh(b));
+  scene.add(houseItemsGroup);
+}
+
+// 方案在其他房间的构件：材质换成按房间区分的副本，挂上剖切面；相机对准某个房间时，只有该房间显示全高
+const CUT_PLANE = new THREE.Plane(new THREE.Vector3(0, -1, 0), CUT_H * M);
+const roomClip = new Map(HOUSE_ROOMS.map((r) => [r.id, [CUT_PLANE]]));
+const roomMats = new Map();
+function clipToRoom(m, room) {
+  return Object.assign(m, { clippingPlanes: roomClip.get(room), clipShadows: true, side: THREE.DoubleSide });
+}
+function roomMaterial(m, room) {
+  const k = `${room}|${m.uuid}`;
+  if (!roomMats.has(k)) roomMats.set(k, clipToRoom(m.clone(), room));
+  return roomMats.get(k);
+}
+function applyRoomClip() {
+  for (const [room, planes] of roomClip) {
+    planes.length = 0;
+    if (ui.view !== 'persp' || ui.room !== room) planes.push(CUT_PLANE);
+  }
 }
 function applyShell(model) {
   for (const w of walls) if (w.slot) w.mesh.material = mat(w.slot === 'media' ? model.walls.media : model.walls.base);
@@ -523,6 +552,12 @@ function createEntry(pose) {
       if (o.isMesh) { o.material = [].concat(o.material).map((m) => Object.assign(m.clone(), { transparent: true })); if (o.material.length === 1) o.material = o.material[0]; o.userData.ownMat = true; }
     });
   }
+  const room = pose.part.room;
+  if (room) group.traverse((o) => {
+    if (!o.isMesh) return;
+    o.material = [].concat(o.material).map((m) => (o.userData.ownMat ? clipToRoom(m, room) : roomMaterial(m, room)));
+    if (o.material.length === 1) o.material = o.material[0];
+  });
   entry.wallEdge = pose.part.wallEdge;
   partRoot.add(group);
   parts.set(pose.id, entry);
@@ -657,7 +692,7 @@ function buildLights() {
   }
   for (const m of matCache.values()) if (m.userData.glow) m.emissiveIntensity = night ? LIGHT.night.glow : LIGHT.day.glow;
   for (const e of parts.values()) e.group.traverse((o) => { if (o.userData.ownMat) [].concat(o.material).forEach((m) => { if (m.emissive) m.emissiveIntensity = night ? LIGHT.night.glow : LIGHT.day.glow; }); });
-  dimHouse(night);
+  dimHouse(night && model.key === 'current');
   mat('projection').emissiveIntensity = LIGHT.projection;
   scene.background = new THREE.Color(cssVar(night ? '--c-canvas-night' : '--c-canvas-day'));
   scene.add(lights);
@@ -678,7 +713,7 @@ function buildLabels(model) {
   for (const z of model.zones.filter((q) => !q.only || q.only.includes(st))) labels.add(label(z.name, z.x, z.y, 'zone-label'));
   // 房间名只在全屋俯视里出现：CSS2D 标签没有遮挡判断，透视里会压在客厅墙上
   if (ui.view === 'house') {
-    for (const r of HOUSE_ROOMS) labels.add(label(r.name, r.label[0], r.label[1], 'room-label'));
+    for (const r of HOUSE_ROOMS) labels.add(label(model.rooms ? `${r.name} · ${ROLES[r.id]}` : r.name, r.label[0], r.label[1], 'room-label'));
     labels.add(label(HOUSE_NOTE, 3300, -3000, 'dim-label')); // 客厅北侧的空白处
   }
   if (ui.view === 'plan') {
@@ -688,6 +723,26 @@ function buildLabels(model) {
   scene.add(labels);
 }
 
+// 房间视角：相机高位、约 65°–70° 俯角看房间中心，越过南侧的到顶柜体；偏移量（米）按各房间高柜的位置逐个选定
+const ROOM_AIM = {
+  bedA: { at: [-1800, -3600], off: [-1.2, 7.4, 3.2] },
+  bedB: { at: [-3200, -300], off: [0.6, 7.6, 2.8] },
+  bedC: { at: [-1600, 3000], off: [1.4, 6.6, 3.0] },
+  bath: { at: [-1500, 5400], off: [1.0, 5.6, 2.6] },
+  kitchen: { at: [4300, 6500], off: [0.8, 7.8, 2.2] },
+};
+const ROOM_VIEWS = Object.fromEntries(Object.entries(ROOM_AIM).map(([id, { at, off }]) => {
+  const t = [at[0] * M, 0.5, at[1] * M];
+  return [id, { pos: [t[0] + off[0], t[1] + off[1], t[2] + off[2]], target: t }];
+}));
+function aimCamera(model) {
+  const v = ui.room === 'living' ? VIEWS[VIEW_OF[model.key]] : ROOM_VIEWS[ui.room];
+  persp.position.set(...v.pos);
+  orbit.target.set(...v.target);
+  orbit.update();
+  applyRoomClip();
+}
+
 // 切换模型：重建全部构件
 function rebuildModel() {
   const model = modelOf(ui.model);
@@ -695,11 +750,8 @@ function rebuildModel() {
   for (const e of parts.values()) disposeGroup(e.group);
   parts.clear();
   applyShell(model);
-  buildHousePrior(model);
-  const v = VIEWS[VIEW_OF[model.key]];
-  persp.position.set(...v.pos);
-  orbit.target.set(...v.target);
-  orbit.update();
+  buildHouseItems(model);
+  aimCamera(model);
   const st = model.key === 'current' ? 'daily' : ui.state;
   applyPoses(st, st, 1);
   buildLights();
@@ -777,7 +829,10 @@ function syncButtons(buttons, current, disabled = false) {
 }
 const bars = {
   model: segButtons($('modelBar'), MODELS.map((m) => ({ key: m.key, label: m.label })), (k) => { if (k === ui.model) return; ui.model = k; renderUI(); rebuildModel(); }),
-  view: segButtons($('viewBar'), [{ key: 'persp', label: '透视' }, { key: 'plan', label: '俯视' }, { key: 'house', label: '全屋' }], (k) => { ui.view = k; orbit.enabled = k === 'persp'; plan.enabled = k !== 'persp'; renderUI(); buildLabels(modelOf(ui.model)); if (k !== 'persp') frameOrtho(); render(); }),
+  view: segButtons($('viewBar'), [{ key: 'persp', label: '透视' }, { key: 'plan', label: '俯视' }, { key: 'house', label: '全屋' }], (k) => { ui.view = k; orbit.enabled = k === 'persp'; plan.enabled = k !== 'persp'; applyRoomClip(); renderUI(); buildLabels(modelOf(ui.model)); if (k !== 'persp') frameOrtho(); render(); }),
+  room: segButtons($('roomBar'), [{ key: 'living', label: '客厅' }, ...HOUSE_ROOMS.map((r) => ({ key: r.id, label: r.name }))], (k) => {
+    ui.room = k; ui.view = 'persp'; orbit.enabled = true; plan.enabled = false; aimCamera(modelOf(ui.model)); renderUI(); buildLabels(modelOf(ui.model)); render();
+  }),
   light: segButtons($('lightBar'), [{ key: 'day', label: '昼' }, { key: 'night', label: '夜' }], (k) => { ui.light = k; renderUI(); buildLights(); render(); }),
   state: segButtons($('stateBar'), STATES, (k) => { if (k === ui.state) return; const from = ui.state; ui.state = k; renderUI(); transition(from, k); }),
 };
@@ -791,6 +846,7 @@ function renderUI() {
   const isCurrent = model.key === 'current';
   syncButtons(bars.model, ui.model);
   syncButtons(bars.view, ui.view);
+  syncButtons(bars.room, ui.view === 'persp' ? ui.room : null);
   syncButtons(bars.light, ui.light);
   syncButtons(bars.state, ui.state, isCurrent);
   stateNote.hidden = !isCurrent;
@@ -833,7 +889,15 @@ function renderPanel(m) {
     h += '<h2>材料样板</h2><div class="swatches">' + m.palette.map((k) =>
       `<div class="swatch"><span class="chip" style="background:${esc(MATERIALS[k].color)}"></span><span class="caption">${esc(MATERIALS[k].name)}</span></div>`).join('') + '</div>';
   }
-  h += '<p class="caption">「#」编号对应 promept.md 第八节诊断清单；L0–L3 为第七节改动层级。</p>';
+  if (m.rooms) {
+    h += '<h2>全屋</h2><p class="caption">卧室 A 主卧，卧室 B 平时书房、父母来住时变客房，卧室 C 衣帽间；厨卫保持原水电点位。尺寸为图面读数，待现场复核。</p>';
+    for (const r of m.rooms) {
+      const name = HOUSE_ROOMS.find((x) => x.id === r.room).name;
+      h += `<h3>${esc(name)} · ${esc(ROLES[r.room])}</h3><ul class="list">` + r.changes.map((c) =>
+        `<li><span class="lv lv-${esc(c.level)}">${esc(c.level)}</span><span>${esc(c.text)}</span><span class="caption">${esc(c.rev)} · 依据：${esc(c.basis)}</span></li>`).join('') + '</ul>';
+    }
+  }
+  h += '<p class="caption">「#」编号对应 promept.md 第八节诊断清单；L0–L4 为第七节改动层级（L4 只作需专业人员评估的选项）。</p>';
   $('panel').innerHTML = h;
 }
 

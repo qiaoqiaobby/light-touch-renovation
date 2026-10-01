@@ -23,6 +23,8 @@
   --c-level-2-text: #171717;
   --c-level-3-bg: #404040;
   --c-level-3-text: #fafafa;
+  --c-level-4-bg: #171717;   /* L4 只作「需专业人员评估」的选项，配虚线边框 */
+  --c-level-4-text: #fafafa;
 
   /* 间距：4px 基数 */
   --s-1: 4px;

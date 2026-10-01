@@ -5,7 +5,8 @@ import { execSync } from 'node:child_process';
 const FILE = 'viz/src/creative/schemes.js';
 const RIG = 'viz/src/creative/rig.js';
 const HOUSE = 'viz/src/house.js';
-const originals = { [FILE]: readFileSync(FILE, 'utf8'), [RIG]: readFileSync(RIG, 'utf8'), [HOUSE]: readFileSync(HOUSE, 'utf8') };
+const ROOMS = 'viz/src/creative/rooms.js';
+const originals = { [FILE]: readFileSync(FILE, 'utf8'), [RIG]: readFileSync(RIG, 'utf8'), [HOUSE]: readFileSync(HOUSE, 'utf8'), [ROOMS]: readFileSync(ROOMS, 'utf8') };
 // expect：必须出现的 FAIL 行里同时包含的方案名与检查名
 const MUTATIONS = [
   { name: '翻板撞到坐榻柜（方案四餐桌翻板铰链范围北移）', from: 'pivot: { x: 3040, z: 710 }, span: [4668, 5532]', to: 'pivot: { x: 3040, z: 710 }, span: [4200, 5064]', expect: ['方案四', '实体互不重叠'] },
@@ -34,6 +35,15 @@ const MUTATIONS = [
   { name: '卫生间南墙缩短 600 留缝', file: HOUSE, from: '{ x0: -3110, x1: -670, y0: 6270, y1: 6510 },', to: '{ x0: -2510, x1: -670, y0: 6270, y1: 6510 },', expect: ['外壳', '房间四周封闭'] },
   { name: '卧室 B 门前净空矩形挪到房间另一头', file: HOUSE, from: "name: '卧室 B 门', x: -2110, y: 280,", to: "name: '卧室 B 门', x: -4200, y: 280,", expect: ['卧室 B 门', '门内 600 净空'] },
   { name: '卫生间轮廓伸进客厅墙（东南角不让开）', file: HOUSE, from: '[-120, 6150], [-670, 6150], [-670, 6270], [-2880, 6270]] },', to: '[-120, 6270], [-2880, 6270]] },', expect: ['外壳', '墙体不侵入房间'] },
+  // 全屋创意设计（rooms.js）
+  { name: '书桌伸进壁床翻转范围（只有扫掠能发现）', file: ROOMS, from: "{ id: 'b4Desk', name: '窗下书桌', shape: 'slab', x: -4790, y: -2070, w: 1050,", to: "{ id: 'b4Desk', name: '窗下书桌', shape: 'slab', x: -4790, y: -1100, w: 1300,", expect: ['方案四', '扫掠'] },
+  { name: '方案四卧室 B 改回平开门', file: ROOMS, from: "doors: { bedB: 'sliding' },", to: 'doors: {},', expect: ['方案四', '卧室 B 门门扇扫掠'] },
+  { name: '和室地台伸进门扇扫掠范围', file: ROOMS, from: "{ id: 'b5Deck', name: '和室地台', shape: 'deck', x: -4790, y: -1530, w: 2390,", to: "{ id: 'b5Deck', name: '和室地台', shape: 'deck', x: -4790, y: -1530, w: 2700,", expect: ['方案五', '卧室 B 门门扇扫掠'] },
+  { name: '沙发床拉出越界', file: ROOMS, from: "states: { guests: { y: -630, d: 1100, mount: 'floor' } } },", to: "states: { guests: { y: -630, d: 2900, mount: 'floor' } } },", expect: ['方案六', '构件在房间内'] },
+  { name: '父母来住少一床被褥', file: ROOMS, from: "x: -4600, y: -380, w: 2000, d: 1000, h: 80, z: 300, mat: 'bedding', mount: 'deck', soft: true, sleeps: 1, only: ['guests'] },", to: "x: -4600, y: -380, w: 2000, d: 1000, h: 80, z: 300, mat: 'bedding', mount: 'deck', soft: true, sleeps: 1, only: ['movie'] },", expect: ['方案五', '父母来住床位'] },
+  { name: '衣帽间衣柜挡门', file: ROOMS, from: "{ id: 'c4North', name: '北墙衣柜', shape: 'cabinet', x: -2980, y: 1660, w: 1740,", to: "{ id: 'c4North', name: '北墙衣柜', shape: 'cabinet', x: -2980, y: 1660, w: 2200,", expect: ['方案四', '卧室 C 门内 600 净空'] },
+  { name: '替换件名称拼错（旧台盆柜与新台盆柜叠在一起）', file: ROOMS, from: "'kitchen/东墙吊柜', 'bath/台盆柜'];", to: "'kitchen/东墙吊柜', 'bath/台盆'];", expect: ['全屋', '替换的固定件都存在'] },
+  { name: '伴侣衣柜加深到 650，门廊过不去', file: ROOMS, from: "{ id: 'a4Partner', name: '伴侣衣柜（门廊）', shape: 'cabinet', x: -1370, y: -1650, w: 550,", to: "{ id: 'a4Partner', name: '伴侣衣柜（门廊）', shape: 'cabinet', x: -1370, y: -1650, w: 650,", expect: ['方案四', '可达'] },
 ];
 
 let caught = 0;

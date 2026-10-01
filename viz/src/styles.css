@@ -36,6 +36,8 @@ html, body {
 .bar-top-left { top: var(--s-4); left: var(--s-4); }
 .bar-top-right { top: var(--s-4); right: var(--s-4); }
 .bar-bottom { bottom: var(--s-4); left: var(--s-4); align-items: center; }
+/* 房间视角：右侧竖排，像楼层索引；页面二全屋设计用 */
+.bar-right { right: var(--s-4); top: 50%; transform: translateY(-50%); flex-direction: column; gap: var(--s-1); }
 .seg { display: flex; gap: var(--s-1); }
 .seg + .seg { border-left: var(--border-w) solid var(--c-border); padding-left: var(--s-2); }
 .bar-note { font-size: var(--fs-caption); line-height: var(--lh-caption); color: var(--c-text-2); padding: 0 var(--s-2); }
@@ -109,6 +111,12 @@ html, body {
   font-weight: var(--fw-bold);
   margin: var(--s-5) 0 var(--s-2);
 }
+.panel h3 {
+  font-size: var(--fs-body);
+  line-height: var(--lh-label);
+  font-weight: var(--fw-medium);
+  margin: var(--s-4) 0 var(--s-1);
+}
 .panel p { margin: var(--s-3) 0 0; }
 .caption { font-size: var(--fs-caption); line-height: var(--lh-caption); color: var(--c-text-2); }
 .notice {
@@ -143,6 +151,7 @@ html, body {
 .lv-L1 { background: var(--c-level-1-bg); color: var(--c-level-1-text); }
 .lv-L2 { background: var(--c-level-2-bg); color: var(--c-level-2-text); }
 .lv-L3 { background: var(--c-level-3-bg); color: var(--c-level-3-text); }
+.lv-L4 { background: var(--c-level-4-bg); color: var(--c-level-4-text); border-style: dashed; }
 .dim { font-size: var(--fs-caption); line-height: var(--lh-caption); color: var(--c-text-2); align-self: start; }
 
 .swatches { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-2) var(--s-3); }

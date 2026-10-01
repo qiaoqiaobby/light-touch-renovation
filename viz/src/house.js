@@ -108,12 +108,24 @@ export const HOUSE_ITEMS = [
 ];
 
 // 每个门洞内侧 600 mm 须留空（门洞位置取自 geometry.js 的 OPENINGS，这里给出进入房间一侧的净空矩形）
+// swing 为平开门的门扇扫掠（户型图门弧）：hinge 门轴，r 门宽，qx / qy 为扫掠所在象限的方向；推拉门没有 swing
 export const HOUSE_DOORS = [
-  { room: 'bedA', name: '卧室 A 门', x: -1200, y: -720, w: 840, d: 600 },
-  { room: 'bedB', name: '卧室 B 门', x: -2110, y: 280, w: 600, d: 840 },
-  { room: 'bedC', name: '卧室 C 门', x: -1120, y: 1660, w: 840, d: 600 },
+  { room: 'bedA', name: '卧室 A 门', x: -1200, y: -720, w: 840, d: 600, swing: { hinge: [-360, -120], r: 840, qx: -1, qy: -1 } },
+  { room: 'bedB', name: '卧室 B 门', x: -2110, y: 280, w: 600, d: 840, swing: { hinge: [-1510, 1120], r: 840, qx: -1, qy: -1 } },
+  { room: 'bedC', name: '卧室 C 门', x: -1120, y: 1660, w: 840, d: 600, swing: { hinge: [-280, 1660], r: 840, qx: -1, qy: 1 } },
   { room: 'bath', name: '卫生间开口', x: -720, y: 4900, w: 600, d: 1200 },
   { room: 'kitchen', name: '厨房推拉门', x: 2990, y: 6450, w: 600, d: 1100 },
+];
+
+// 方案校验用的可达目标：从门内净空中心出发，净宽 ≥ 500 能走到（床位另按床边判断）
+export const HOUSE_REACH = [
+  { room: 'bedC', name: '北墙衣柜前', x: -2100, y: 2530 },
+  { room: 'bedC', name: '一体柜前', x: -1180, y: 3480 },
+  { room: 'kitchen', name: '水槽前', x: 4270, y: 7050 },
+  { room: 'kitchen', name: '灶台前', x: 4060, y: 7980 },
+  { room: 'kitchen', name: '洗衣机前', x: 4270, y: 4450 },
+  { room: 'bath', name: '台盆前', x: -1110, y: 5500 },
+  { room: 'bath', name: '淋浴区', x: -2400, y: 4950 },
 ];
 
 // ───────── 展开为体块（mm，世界坐标；x 向东、y 向南、z 向上），两页的建模与校验共用 ─────────
@@ -180,7 +192,8 @@ function shapeBoxes(it) {
 
 // 只有「现状」模型带上一任住户的家具；各方案只保留固定件（新业主的家具未定，放旧家具会误导对比）
 export const withPriorFor = (modelKey) => modelKey === 'current';
-export const houseItems = (modelKey) => HOUSE_ITEMS.filter((it) => withPriorFor(modelKey) || it.kind === 'fixed');
+// replaces：被方案替换掉的固定件，写作「房间/名称」
+export const houseItems = (modelKey, replaces = []) => HOUSE_ITEMS.filter((it) => (withPriorFor(modelKey) || it.kind === 'fixed') && !replaces.includes(`${it.room}/${it.name}`));
 
 // 全屋外包框（mm），供俯视取景
 export function houseBounds() {

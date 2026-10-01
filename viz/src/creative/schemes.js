@@ -6,6 +6,7 @@
 // face 为正面朝向（'w' 朝西、'n' 朝北、's' 朝南）；a 为沿正面水平方向的坐标（朝西时取 y，朝南北时取 x）
 // zones 可带 only，仅在列出的使用状态显示
 import { MODELS as BASE } from '../schemes.js';
+import { buildRooms, ROOM_META, CEIL_ROOMS } from './rooms.js';
 
 export const STATES = [
   { key: 'daily', label: '收起' },
@@ -14,6 +15,7 @@ export const STATES = [
   { key: 'dine2', label: '双人餐' },
   { key: 'party', label: '多人聚会' },
   { key: 'exercise', label: '运动' },
+  { key: 'guests', label: '父母来住' }, // 全屋状态：卧室 B 变成客房，客厅保持收起
 ];
 
 // ───────── 三个方案共用 ─────────
@@ -337,6 +339,16 @@ const S6 = {
     ...entry('oakPale'),
   ],
 };
+
+// 全屋：各方案在其他房间的构件与说明（rooms.js），客厅构件不变；「父母来住」时客厅保持收起
+const ROOMS = buildRooms(STATES.map((s) => s.key));
+for (const m of [S4, S5, S6]) {
+  const meta = ROOM_META[m.key];
+  m.parts.push(...ROOMS[m.key]);
+  m.ceil = [...m.ceil, ...CEIL_ROOMS];
+  m.steps.guests = meta.guests;
+  Object.assign(m, { replaces: meta.replaces, doors: meta.doors, rooms: meta.rooms });
+}
 
 // 现状沿用页面一的数据
 const CURRENT = { ...BASE[0], parts: BASE[0].items, floor: 'tile' };
