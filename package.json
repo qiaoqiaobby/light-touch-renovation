@@ -7,10 +7,30 @@
     "build": "node viz/scripts/build.mjs",
     "lint:tokens": "node viz/scripts/lint-tokens.mjs",
     "shots": "node viz/scripts/shots.mjs",
-    "mutate": "node viz/scripts/mutate.mjs"
+    "mutate": "node viz/scripts/mutate.mjs",
+    "dev:plan": "vite --host 127.0.0.1 --port 5173",
+    "build:plan": "vite build",
+    "preview:plan": "vite preview --host 127.0.0.1 --port 4173",
+    "audit:plan": "node scripts/audit-plan.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@react-three/drei": "^10.7.9",
+    "@react-three/fiber": "^9.8.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "three": "^0.186.1",
+    "zustand": "^5.0.0"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.3.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@types/three": "^0.186.0",
+    "@vitejs/plugin-react": "^5.2.0",
     "esbuild": "^0.28.2",
-    "three": "^0.186.1"
+    "tailwindcss": "^4.3.0",
+    "typescript": "^5.7.0",
+    "vite": "^8.2.0"
   }
 }

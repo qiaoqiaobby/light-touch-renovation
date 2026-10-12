@@ -1,6 +1,6 @@
 # light-touch-renovation
 
-住宅微改设计工作空间。输入是房屋现状（VR 全景、户型图）和居住者需求，产出是按 `promept.md` 方法论推导的微改方案与效果示意可视化。当前唯一项目是一位新业主的客厅重构，进度见 `ROADMAP.md`。
+住宅微改设计工作空间。输入是房屋现状（VR 全景、户型图、净尺寸核算）和居住者需求，产出是按 `promept.md` 方法论推导的微改方案，以及两套可视化：方案对比页（`viz/`）和按复尺轮廓建的户型三维（`src/floorplan/`）。当前项目是一位新业主的住宅，进度见 `ROADMAP.md`。
 
 ## 目录约定
 
@@ -10,8 +10,12 @@
 | `VR/` | 原始现状资料：`VR离线全景.html`（14 场景全景）、`231348_751.png`（户型图）、`README.md`（全景文件数据契约） | 只读，不修改、不移动、不删除 |
 | `docs/plan/` | 正式产出物：诊断表、方案文档、可视化页面 | 文件名 = 任务名 + 24 小时制时间戳，如 `客厅微改方案-202609301530.md` |
 | `mid/` | 过程文件：全景展开图、提取脚本、截图、中间计算 | 可随时重新生成，不作为交付依据，不入库 |
-| `viz/` | 3D 可视化源码：`src/` 为页面一（第一组三方案），`src/creative/` 为页面二（创意三方案，含机构数据层 `rig.js`）；`src/house.js` 为两页共用的其他房间外壳（只建模不做设计）；`scripts/` 为校验、构建、截图、变异测试脚本 | 几何与家具数据只改 `geometry.js`、`house.js` 与各页的 `schemes.js`，改后先跑 `npm run validate`；构建用 `node viz/scripts/build.mjs <时间戳> basic\|creative` |
-| `DESIGN.md` | 项目级 UI 规范 | 改 `viz/` 的界面前先读；视觉数值只来自 `viz/src/tokens.css` |
+| `viz/` | 方案对比的 3D 源码：`src/` 为页面一（第一组三方案），`src/creative/` 为页面二（创意三方案，含机构数据层 `rig.js`）；`src/house.js` 为两页共用的其他房间外壳（只建模不做设计）；`scripts/` 为校验、构建、截图、变异测试脚本 | 几何与家具数据只改 `geometry.js`、`house.js` 与各页的 `schemes.js`，改后先跑 `npm run validate`；构建用 `node viz/scripts/build.mjs <时间戳> basic\|creative` |
+| `src/floorplan/` | 户型三维：按复尺内墙轮廓建的整屋模型，含鸟瞰、俯视、漫游 | 轮廓、门和示意家具只改 `plan-data.ts`，墙体几何只改 `geometry.ts`；改后跑 `npm run audit:plan`。这里的家具是放得下的示意，不是上一任住户的物品，也不是微改方案 |
+| `src/styles.css` | 户型三维的界面色和字体 | 只服务户型三维。色值写在本文件的 `@theme`，不走 `viz/src/tokens.css` |
+| `index.html` | 户型三维入口 | 本地用 `npm run dev:plan` 打开。这是 Vite 应用，不是 `file://` 单页 |
+| `docs/plan/户型净尺寸核算-202610121252.html` | 复尺净尺寸核算底稿 | 户型三维与它对账。不在这里改微改方案 |
+| `DESIGN.md` | 方案对比页的 UI 规范 | 改 `viz/` 的界面前先读；那两页的视觉数值只来自 `viz/src/tokens.css` |
 | `ROADMAP.md` | 项目真实进度源 | 每次完成调研、决策、产出后同步更新 |
 
 ## 工作方式
@@ -30,7 +34,11 @@ VR 全景是上一任住户在 2026-09 拍摄的状态，画面中的家具、�
 
 ## 可视化产出
 
-效果示意为正式交付物，动手前先读取 `~/.claude/DESIGN.md` 完成设计宣读，并在项目内建立 `DESIGN.md` 与 design tokens 后再实现。页面为单文件离线 HTML，可通过 `file://` 直接打开，不依赖网络。平面图须按户型图比例绘制，不得为画面好看扭曲尺度。
+方案对比页是正式交付物，动手前先读取 `~/.claude/DESIGN.md` 完成设计宣读，并在项目内建立 `DESIGN.md` 与 design tokens 后再实现。这两页是单文件离线 HTML，可通过 `file://` 直接打开，不依赖网络。平面图须按户型图比例绘制，不得为画面好看扭曲尺度。
+
+户型三维是另一套交付：Vite 应用，入口 `index.html`，开发用 `npm run dev:plan`，构建用 `npm run build:plan`。它表达复尺后的现状壳，不替代 `viz/` 里的微改方案。两套几何来源不同，改一边不会自动改另一边。
+
+`docs/Bya3ZiArfMax65xx-grok-workspace.zip` 是 Grok 沙箱导出。合并时只收产品：`src/floorplan/`、净尺寸核算页、图标。沙箱契约（根目录 `AGENTS.md`、认证、数据库、PWA、`.vercel` 构建产物、`.grok/skills`）不进入本仓库。导出里认证和数据库是关闭的，那些文件只在 Grok 预览沙箱里能跑。
 
 ## 红线
 

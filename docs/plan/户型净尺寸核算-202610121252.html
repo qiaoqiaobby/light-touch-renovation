@@ -1,0 +1,627 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>户型净尺寸核算</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@600;900&display=swap">
+<style>
+/* Layout: a drafting sheet. Title block on top; the redrawn net-dimension plan on the left (sticky on wide screens),
+   the room schedule on the right; then the adversarial review, the final schedule, and the method. */
+:root{
+  --paper:#F3F4F0; --sheet:#FBFBF8; --ink:#1C252B; --muted:#5D6970; --rule:#D3D9D6;
+  --wall:#27333B; --glass:#8DB2CF; --dim:#1D5EA4; --hl:#DCE9F7;
+  --f-bed:#ECE5D7; --f-live:#E2E8EB; --f-wet:#D8E4E7;
+  --ok:#2C7A4D; --fix:#A3670F; --bad:#B02A2A; --door:#8B3A6B; --door-hl:#F3E3EC;
+  --display:"Noto Serif SC","Songti SC","SimSun",serif;
+  --body:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --s-1:.8125rem; --s0:.9375rem; --s1:1.0625rem; --s2:1.375rem; --s3:2rem; --s4:2.75rem;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#111518; --sheet:#171C20; --ink:#E3E7E8; --muted:#98A4AA; --rule:#2B343A;
+    --wall:#D6DDE0; --glass:#5D8DB4; --dim:#80B5EF; --hl:#1B2A3A;
+    --f-bed:#2A2925; --f-live:#20272B; --f-wet:#1C292D;
+    --ok:#6BC08D; --fix:#E1A94C; --bad:#EE7E7E; --door:#E39BC8; --door-hl:#3A2433; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#111518; --sheet:#171C20; --ink:#E3E7E8; --muted:#98A4AA; --rule:#2B343A;
+  --wall:#D6DDE0; --glass:#5D8DB4; --dim:#80B5EF; --hl:#1B2A3A;
+  --f-bed:#2A2925; --f-live:#20272B; --f-wet:#1C292D;
+  --ok:#6BC08D; --fix:#E1A94C; --bad:#EE7E7E; --door:#E39BC8; --door-hl:#3A2433; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:var(--s0);line-height:1.7;padding-inline:16px;padding-block:28px 56px}
+.wrap{max-width:1200px;margin-inline:auto;display:grid;gap:48px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.25}
+h1{font-size:var(--s4);font-weight:900;letter-spacing:.02em}
+h2{font-size:var(--s3);font-weight:900}
+h3{font-size:var(--s2);font-weight:600}
+p{margin:0}
+.mono,.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.eyebrow{font-size:var(--s-1);letter-spacing:.14em;color:var(--muted);font-weight:500}
+
+/* title block */
+.titleblock{display:grid;gap:18px;border-bottom:2px solid var(--ink);padding-bottom:22px}
+.lead{font-size:var(--s1);max-width:42em}
+.meta{display:flex;flex-wrap:wrap;gap:8px 28px;font-size:var(--s-1);color:var(--muted)}
+.meta b{color:var(--ink);font-family:var(--mono);font-weight:500}
+
+/* plan + schedule */
+.plan-area{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:32px;align-items:start}
+.plan-box{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);background:var(--sheet);border:1px solid var(--rule);display:grid;gap:10px;padding:14px}
+.plan-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px}
+.plan-head .eyebrow{letter-spacing:.1em}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:3px;overflow:hidden}
+.seg button{font:inherit;font-size:var(--s-1);background:transparent;color:var(--muted);border:0;padding:5px 12px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.seg button:focus-visible{outline:2px solid var(--dim);outline-offset:-2px}
+.plan-scroll{overflow-x:auto}
+#plan{display:block;width:100%;min-width:500px;height:auto}
+.plan-note{font-size:var(--s-1);color:var(--muted)}
+
+.room-poly{cursor:pointer;transition:filter .15s}
+.room-poly.bed{fill:var(--f-bed)} .room-poly.live{fill:var(--f-live)} .room-poly.wet{fill:var(--f-wet)}
+.room-poly.on{fill:var(--hl)}
+.wall-poly{fill:var(--wall);stroke:var(--wall);stroke-width:230;stroke-linejoin:miter}
+.stub{fill:var(--wall)}
+.glass{stroke:var(--glass);stroke-width:70;stroke-linecap:butt}
+.rname{font-family:var(--display);font-weight:900;fill:var(--ink);font-size:380px;text-anchor:middle;pointer-events:none}
+.rarea{font-family:var(--mono);fill:var(--muted);font-size:250px;text-anchor:middle;pointer-events:none}
+.dimline{stroke:var(--dim);stroke-width:22;fill:none}
+.dimtick{stroke:var(--dim);stroke-width:34}
+.dimtxt{font-family:var(--mono);font-weight:500;fill:var(--dim);font-size:250px;text-anchor:middle;paint-order:stroke;stroke-width:70;stroke-linejoin:round;pointer-events:none}
+.bed .dimtxt,.dimtxt.bed{stroke:var(--f-bed)} .dimtxt.live{stroke:var(--f-live)} .dimtxt.wet{stroke:var(--f-wet)}
+.dimtxt.exact{font-weight:600}
+.edgetxt{font-family:var(--mono);fill:var(--ink);font-size:215px;text-anchor:middle;pointer-events:none;paint-order:stroke;stroke-width:60;stroke-linejoin:round}
+.north{font-family:var(--display);font-weight:900;fill:var(--muted);font-size:330px;text-anchor:middle}
+
+/* door switch + door layer */
+.tools{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
+.switch{display:inline-flex;align-items:center;gap:8px;font:inherit;font-size:var(--s-1);color:var(--ink);background:transparent;border:0;padding:4px 2px;cursor:pointer}
+.switch .track{width:34px;height:20px;border-radius:10px;background:var(--rule);position:relative;transition:background .15s;flex:none}
+.switch .thumb{position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:var(--sheet);box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
+.switch[aria-checked="true"] .track{background:var(--door)}
+.switch[aria-checked="true"] .thumb{transform:translateX(14px)}
+.switch:focus-visible{outline:2px solid var(--door);outline-offset:2px;border-radius:3px}
+.fade{opacity:.14}
+.d-gap{fill:var(--sheet)}
+.d-leaf{stroke:var(--door);stroke-width:45;stroke-linecap:butt}
+.d-arc{stroke:var(--door);stroke-width:16;fill:none;stroke-dasharray:60 40}
+.d-panel{stroke:var(--door);stroke-width:22;fill:color-mix(in srgb,var(--door) 22%,transparent)}
+.d-chain{stroke:var(--door);stroke-width:18}
+.d-tick{stroke:var(--door);stroke-width:30}
+.d-txt{font-family:var(--mono);font-size:200px;fill:var(--door);paint-order:stroke;stroke:var(--sheet);stroke-width:60;stroke-linejoin:round}
+.d-txt.open{font-weight:600;font-size:225px}
+.d-badge circle{fill:var(--door)}
+.d-badge text{font-family:var(--mono);font-weight:600;font-size:190px;fill:var(--sheet);text-anchor:middle;dominant-baseline:central}
+.door-g{cursor:pointer}
+.door-g.on .d-leaf{stroke-width:70} .door-g.on .d-arc{stroke-width:30;stroke-dasharray:none}
+.door-g.on .d-badge circle{stroke:var(--ink);stroke-width:40}
+
+.doors-panel{background:var(--sheet);border:1px solid var(--door);display:grid;gap:12px;padding:16px 18px}
+.doors-panel h3{font-size:var(--s2)}
+.doors-panel .note{font-size:var(--s-1);color:var(--muted)}
+.dlist{display:grid;gap:0;margin:0;padding:0;list-style:none;border-top:1px solid var(--rule)}
+.ditem{display:grid;grid-template-columns:2.6rem minmax(0,1fr);gap:4px 12px;padding:10px 0;border-bottom:1px solid var(--rule);cursor:pointer}
+.ditem.on{background:var(--door-hl)}
+.ditem:focus-visible{outline:2px solid var(--door);outline-offset:-2px}
+.ditem .id{grid-row:span 3;align-self:start;justify-self:start;font-family:var(--mono);font-weight:600;font-size:var(--s-1);color:var(--sheet);background:var(--door);border-radius:999px;padding:1px 8px}
+.ditem .dn{font-weight:700}
+.ditem .dn small{font-weight:400;color:var(--muted);margin-left:8px;font-size:var(--s-1)}
+.ditem .dnum{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:var(--s-1);display:flex;flex-wrap:wrap;gap:2px 14px}
+.ditem .dnum b{color:var(--door);font-weight:600}
+.ditem .dtip{font-size:var(--s-1);color:var(--muted)}
+.doors-only{display:none}
+body.doors-on .doors-only{display:block}
+.door-line{font-size:var(--s-1);color:var(--door)}
+
+.schedule{display:grid;gap:14px}
+.card{background:var(--sheet);border:1px solid var(--rule);padding:16px 18px;display:grid;gap:10px;cursor:pointer;transition:border-color .15s,background .15s}
+.card.on{border-color:var(--dim);background:color-mix(in srgb,var(--hl) 55%,var(--sheet))}
+.card:focus-visible{outline:2px solid var(--dim);outline-offset:2px}
+.card-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.card-top h3{font-size:var(--s2)}
+.areas{font-size:var(--s-1);color:var(--muted)}
+.areas .num{color:var(--ink);font-size:var(--s0)}
+.main-dim{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.main-dim .big{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:1.75rem;font-weight:500;letter-spacing:-.01em;color:var(--dim)}
+.main-dim .cap{font-size:var(--s-1);color:var(--muted)}
+dl.kv{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 16px;margin:0;font-size:var(--s-1)}
+dl.kv dt{color:var(--muted)}
+dl.kv dd{margin:0;font-family:var(--mono);font-variant-numeric:tabular-nums;min-width:0}
+dl.kv dd small{font-family:var(--body);color:var(--muted);margin-left:6px}
+.exact-mark{display:inline-block;font-family:var(--body);font-size:.6875rem;border:1px solid currentColor;color:var(--muted);border-radius:2px;padding:0 4px;margin-left:6px;vertical-align:1px;letter-spacing:.04em}
+.insight{font-size:var(--s-1);border-top:1px dashed var(--rule);padding-top:9px;color:var(--ink)}
+.insight b{font-weight:700}
+
+/* review */
+section{display:grid;gap:20px}
+.sec-head{display:grid;gap:8px;max-width:46em}
+.sec-head p{color:var(--muted)}
+.review{display:grid;gap:0;border-top:1px solid var(--ink)}
+.rv{display:grid;grid-template-columns:7.5rem minmax(0,1fr);gap:8px 22px;padding:18px 0;border-bottom:1px solid var(--rule)}
+.chip{align-self:start;justify-self:start;font-size:var(--s-1);font-weight:700;padding:2px 10px;border-radius:2px;letter-spacing:.06em;white-space:nowrap}
+.chip.ok{color:var(--ok);background:color-mix(in srgb,var(--ok) 13%,transparent)}
+.chip.fix{color:var(--fix);background:color-mix(in srgb,var(--fix) 15%,transparent)}
+.chip.bad{color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,transparent)}
+.rv-body{display:grid;gap:6px;min-width:0}
+.rv-q{font-weight:700;font-size:var(--s1)}
+.rv-body p{max-width:46em}
+.rv-body .ev{color:var(--muted);font-size:var(--s-1)}
+.tbl-wrap{overflow-x:auto;min-width:0}
+table{border-collapse:collapse;width:100%;font-size:var(--s-1)}
+th,td{text-align:left;padding:6px 10px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font-weight:500;color:var(--muted);white-space:nowrap}
+td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.pos{color:var(--fix)} .neg{color:var(--dim)}
+
+/* final schedule */
+.final{background:var(--sheet);border:1px solid var(--ink)}
+.final table{font-size:var(--s0)}
+.final th{padding:10px 12px;border-bottom:1px solid var(--ink)}
+.final td{padding:12px}
+.final td .big{font-family:var(--mono);font-size:var(--s1);color:var(--dim);white-space:nowrap}
+.final td.rm{font-family:var(--display);font-weight:600;white-space:nowrap}
+.final td.sub{color:var(--muted);font-size:var(--s-1);min-width:16em}
+.limits{display:grid;gap:6px;font-size:var(--s-1);color:var(--muted);max-width:52em}
+.limits b{color:var(--ink)}
+
+/* method */
+ol.steps{margin:0;padding:0;list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;counter-reset:s}
+ol.steps li{counter-increment:s;display:grid;gap:6px;border-top:2px solid var(--ink);padding-top:10px;font-size:var(--s-1)}
+ol.steps li::before{content:"步骤 " counter(s);font-family:var(--mono);color:var(--muted);font-size:.75rem;letter-spacing:.08em}
+ol.steps li b{font-size:var(--s0)}
+footer{font-size:var(--s-1);color:var(--muted);border-top:1px solid var(--rule);padding-top:14px}
+
+@media (max-width:980px){
+  .plan-area{grid-template-columns:minmax(0,1fr)}
+  .plan-box{position:static}
+}
+@media (max-width:560px){
+  h1{font-size:2.1rem} h2{font-size:1.6rem}
+  .rv{grid-template-columns:minmax(0,1fr)}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+
+<header class="titleblock">
+  <div class="eyebrow">复尺报告 · 三室一厅一卫一厨 · 上北下南 · 单位 mm</div>
+  <h1>户型净尺寸核算</h1>
+  <p class="lead">把截图里的尺寸链当作标尺，在像素层面找出每个房间的内墙面，再用尺寸链和标注面积两套独立证据去推翻它。下图是按实际比例重绘的净尺寸图，所有数字都是墙面到墙面的内净尺寸。</p>
+  <div class="meta">
+    <span>比例尺 <b>13.218 mm/px</b></span>
+    <span>单个尺寸误差 <b>±15 mm</b></span>
+    <span>面积回代偏差 <b>0 ~ +0.9%</b></span>
+    <span>测量底图 <b>图 1</b>（图 2 有 2 像素竖向拉伸）</span>
+  </div>
+</header>
+
+<div class="plan-area">
+  <div class="plan-box" aria-label="净尺寸平面图">
+    <div class="plan-head">
+      <span class="eyebrow">净尺寸平面图 · 按比例重绘</span>
+      <div class="tools">
+        <div class="seg" role="group" aria-label="图上标注">
+          <button type="button" id="mode-main" aria-pressed="true">主尺寸</button>
+          <button type="button" id="mode-edge" aria-pressed="false">每段内墙</button>
+        </div>
+        <button type="button" class="switch" id="door-toggle" role="switch" aria-checked="false"><span class="track"><span class="thumb"></span></span>门位与门洞</button>
+      </div>
+    </div>
+    <div class="plan-scroll"><svg id="plan" viewBox="-250 -650 11000 15950" role="img" aria-label="按比例重绘的户型净尺寸图"></svg></div>
+    <p class="plan-note">点选房间与右侧卡片联动。粗体蓝字为图纸尺寸链原值，其余为像素测量并修正后的值，取整到 10 mm。浅蓝线为窗。打开"门位与门洞"后，紫色为门：每樘门沿墙标出"门垛 · 门洞 · 门垛"三段尺寸，房间尺寸暂时淡化。</p>
+  </div>
+
+  <div class="schedule" id="schedule">
+    <div class="doors-panel" id="doors-panel" hidden>
+      <div class="card-top"><h3>门表</h3><span class="areas">6 樘 · 平开 4 · 推拉 2</span></div>
+      <p class="note">门洞净宽为两侧门垛墙面之间的距离，门垛从门洞边量到同一面墙的房间转角。A、B、C 三扇卧室门集中在北侧过道西端约 1.3 × 1.3 m 的范围内，三扇都向房内开，在过道里不会互相碰撞。</p>
+      <ul class="dlist" id="dlist"></ul>
+    </div>
+  </div>
+</div>
+
+<section id="review">
+  <div class="sec-head">
+    <span class="eyebrow">对抗性审查</span>
+    <h2>逐条质疑，再看证据</h2>
+    <p>每条先写出一个"如果这样做就会错"的假设，再用图上能找到的数据去检验。结论分四种：通过、已修正、推翻、存疑。</p>
+  </div>
+  <div class="review">
+
+    <div class="rv">
+      <span class="chip bad">推翻</span>
+      <div class="rv-body">
+        <p class="rv-q">图上外圈的数字就是房间的长和宽？</p>
+        <p>不是。15 段尺寸链里，只有 7 段的两端恰好落在同一个房间的两面内墙上（下表）。左侧的 3097、1699、2206 和右侧的 4412、3683、3803 都是跨房间的外轮廓投影。照着读会得出"卧室 A 进深 3097"，而它的主体进深实际是 3570，从窗到门墙最长 5830。</p>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>尺寸链原值</th><th>对应的房间内净尺寸</th><th class="num">像素直接量</th><th class="num">差值</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">2235</td><td>卧室 A 北侧窗洞净宽</td><td class="num">2210</td><td class="num pos">−25</td></tr>
+              <tr><td class="mono">2532</td><td>客厅北侧窗段净宽</td><td class="num">2508</td><td class="num pos">−24</td></tr>
+              <tr><td class="mono">1348</td><td>厨房北段净宽</td><td class="num">1324</td><td class="num pos">−24</td></tr>
+              <tr><td class="mono">1649</td><td>厨房南段净宽</td><td class="num">1625</td><td class="num pos">−24</td></tr>
+              <tr><td class="mono">1581</td><td>卧室 B 西南段净宽</td><td class="num">1556</td><td class="num pos">−25</td></tr>
+              <tr><td class="mono">1316</td><td>玄关入户净宽</td><td class="num">1288</td><td class="num pos">−28</td></tr>
+              <tr><td class="mono">1811</td><td>卧室 B 北窗段净宽（一侧是窗）</td><td class="num">1806</td><td class="num neg">−5</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="rv">
+      <span class="chip ok">通过</span>
+      <div class="rv-body">
+        <p class="rv-q">比例尺会不会因为截图缩放而失真？</p>
+        <p>用全部 15 段尺寸链做最小二乘，得到 13.218 mm/px。单段残差最大 0.56 px（7 mm），标准差 0.28 px（4 mm）。只用横向 9 段是 13.221，只用竖向 6 段是 13.217，两个方向相差 0.03%，说明图 1 没有被横向或竖向单独拉伸。</p>
+      </div>
+    </div>
+
+    <div class="rv">
+      <span class="chip fix">已修正</span>
+      <div class="rv-body">
+        <p class="rv-q">直接量白色墙线之间的像素距离，就是净尺寸？</p>
+        <p>会偏小约 20 mm。上表 6 段两侧都是实墙的尺寸，像素量值全部比原值短 1.8–2.1 px，离散只有 0.06 px/面，是系统偏差，不是随机误差：渲染出来的墙线比真实墙面"胖"了一圈。</p>
+        <p>两套证据给出的修正量不完全一样：尺寸链推出每面墙外移 0.95 px，6 间房的标注面积反推出 0.62 px。取中间值 0.8 px（约 11 mm/面），剩余分歧约 ±4 mm/面，已计入 ±15 mm 的误差。窗线的偏移方向相反（约 −0.5 px/面），单独处理。</p>
+      </div>
+    </div>
+
+    <div class="rv">
+      <span class="chip ok">通过</span>
+      <div class="rv-body">
+        <p class="rv-q">修正后的尺寸，能不能还原出图上标注的面积？</p>
+        <p>能。按修正后的内墙轮廓逐间复算面积，6 间与标注的偏差都在 0% 到 +0.9% 之间，且都落在标注一位小数的舍入范围附近；修正前是 −0.3% 到 −1.2%，全部偏小。标注面积只保留一位小数，本身就有 ±0.05 ㎡ 的舍入。</p>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>房间</th><th class="num">标注</th><th class="num">修正前</th><th class="num">修正后</th><th class="num">偏差</th></tr></thead>
+            <tbody id="area-rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="rv">
+      <span class="chip ok">通过</span>
+      <div class="rv-body">
+        <p class="rv-q">从建筑常识看，这个比例尺和修正量合理吗？</p>
+        <p>用同一套比例尺和修正量去量墙厚：外墙 236–245 mm，内隔墙 124–129 mm。这正好对应住宅里常见的 200 mm 砌块外墙、100 mm 砌块隔墙，各加两面抹灰。墙厚是图上唯一不依赖尺寸链的真实世界约束，它和结果吻合。</p>
+      </div>
+    </div>
+
+    <div class="rv">
+      <span class="chip fix">已修正</span>
+      <div class="rv-body">
+        <p class="rv-q">两张图是同一份数据，任选一张量都行？</p>
+        <p>不行。逐像素对齐后，两张图除平移外几乎完全相同，但图 2 在图 1 第 707 行和第 773 行附近各多出 1 行像素。凡是竖向跨过这两处的尺寸，在图 2 上都会多量 26 mm：卧室 B 主体进深、客厅进深、北侧过道宽。</p>
+        <p class="ev">裁决依据：图 2 上"1699"这一段量得 130 px，折合 1718 mm，与它自己的标注矛盾；图 1 量得 1692 mm，与标注吻合。因此以图 1 为测量底图，图 2 只用于交叉核对。</p>
+      </div>
+    </div>
+
+    <div class="rv">
+      <span class="chip bad">推翻</span>
+      <div class="rv-body">
+        <p class="rv-q">标注面积越大，能放的家具就越多？</p>
+        <p>不一定。卧室 A 的 14.3 ㎡ 里，能整块使用的主体矩形只有 11.1 ㎡（77%），其余是北侧窗洞和入门过道。卧室 B 的 11 ㎡ 里主体 8.9 ㎡（81%）。客厅 29.7 ㎡ 中成块的起居区是 3360 × 5740 = 19.3 ㎡（65%），其余是连接 A、B、C 三间卧室和卫生间、厨房、入户门的通道。卧室 C 是规整矩形，标注面积就是可用面积。</p>
+      </div>
+    </div>
+
+    <div class="rv">
+      <span class="chip fix">存疑</span>
+      <div class="rv-body">
+        <p class="rv-q">图上的门洞宽，可以直接拿去订门吗？</p>
+        <p>不建议。四扇平开门（含入户门）在图上量得 794–799 mm，彼此相差不到 5 mm。入户门常见的门扇规格是 860 或 960 mm，图上却和卧室门一样宽。这更像是绘图时套用了统一的门图块，而墙体是逐面实测的。两樘推拉门宽度各不相同（卫生间 895、厨房 1394），更像实测值。</p>
+        <p class="ev">结论：门的位置（两侧门垛尺寸）与墙体同等可信，可用于家具排布；平开门的洞宽只作参考。订门、做门套前，需现场实测洞口宽、高和墙厚。</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section id="result">
+  <div class="sec-head">
+    <span class="eyebrow">最终结果</span>
+    <h2>各房间净尺寸</h2>
+    <p>东西向在前，南北向在后。带"原值"的数字直接取自图纸尺寸链，其余为修正后的测量值。</p>
+  </div>
+  <div class="final tbl-wrap">
+    <table>
+      <thead><tr><th>房间</th><th>主体净尺寸</th><th class="num">标注 / 复算面积</th><th>其他关键尺寸</th></tr></thead>
+      <tbody id="final-rows"></tbody>
+    </table>
+  </div>
+  <div class="final tbl-wrap">
+    <table>
+      <thead><tr><th>门</th><th>位置</th><th>形式与开向</th><th class="num">门洞净宽</th><th class="num">两侧门垛</th><th class="num">墙厚</th><th class="num">开启半径</th></tr></thead>
+      <tbody id="door-rows"></tbody>
+    </table>
+  </div>
+  <div class="limits">
+    <p><b>仍然无法消除的不确定性。</b>单个尺寸误差约 ±15 mm，来自渲染像素量化和两套修正证据的分歧。源图本身是扫描生成的户型图，它自己的测量误差不在本次核算能检验的范围内。</p>
+    <p><b>图上没有的信息。</b>层高、梁位、窗台高度、管井和烟道的占位、门洞宽度都无法从这两张图得到。</p>
+    <p><b>完成面还会再缩。</b>厨房和卫生间若尚未贴砖，薄贴每面约再减 10–15 mm，湿贴更多。定制橱柜、衣柜、浴室柜下单前，仍要现场复尺。</p>
+  </div>
+</section>
+
+<section id="method">
+  <div class="sec-head">
+    <span class="eyebrow">方法</span>
+    <h2>怎么得到这些数字</h2>
+  </div>
+  <ol class="steps">
+    <li><b>标定比例尺</b>在四条尺寸链上逐个定位刻度线中心，用 15 段带数值的尺寸做最小二乘，得到 mm/px。</li>
+    <li><b>找内墙面</b>沿每个房间内多条横、竖探测线，取亮度过半处的亚像素位置作为墙面；窗线单独识别。</li>
+    <li><b>系统偏差修正</b>用 7 段与房间内墙对应的尺寸链原值和 6 间标注面积，分别估计墙线外扩量，取中间值修正。</li>
+    <li><b>回代与交叉核对</b>复算面积、核对墙厚、逐像素比对两张图，任何一项不过就回到上一步。</li>
+  </ol>
+</section>
+
+<footer>依据客户提供的两张户型截图核算，图 1 为测量底图。门的位置、开向和门洞尺寸同样取自图 1；平开门洞宽的可信度低于墙体尺寸，见对抗性审查中关于门洞的一条。</footer>
+
+</div>
+
+<script>
+(function(){
+const S={bed:'bed',live:'live',wet:'wet'};
+const rooms=[
+ {id:'A',name:'卧室A',type:S.bed,label:14.3,area:14.33,raw:14.18,
+  poly:[[2707,288],[4938,288],[4938,1074],[5365,1074],[5365,6116],[4246,6116],[4246,4547],[2263,4547],[2263,974],[2707,974]],
+  glass:[[0]],
+  lab:[3814,2600],
+  main:['3100 × 3570','主体 东西 × 南北，约 11.1 ㎡'],
+  kv:[['北侧窗洞','2235 宽 × 690–790 深',true],['入门过道','1120 宽 × 1580 长'],['东墙总长','5040（含过道）'],['最大进深','5830（窗 → 门墙）']],
+  tip:'主体可放 <b>1.8 × 2.0 m 床</b>：床头靠西墙，东侧剩约 1.0 m 通道；南北 3570 放下床宽后还有 1.77 m，够 600 深衣柜加通道。',
+  dims:[[2263,4150,5365,4150,'3100'],[2650,974,2650,4547,'3570'],[2707,650,4938,650,'2235',1],[4246,5900,5365,5900,'1120'],[5250,4547,5250,6116,'1580']]},
+ {id:'B',name:'卧室B',type:S.bed,label:11.0,area:11.00,raw:10.89,
+  poly:[[325,4121],[2136,4121],[2136,4674],[4117,4674],[4117,7549],[2586,7549],[2586,7927],[1009,7927],[1009,5355],[325,5355]],
+  glass:[[0],[9]],
+  lab:[2600,5950],
+  main:['3110 × 2870','主体 东西 × 南北，约 8.9 ㎡'],
+  kv:[['北窗段','1811 宽 × 560',true],['西侧转角窗区','680 深 × 1230 长'],['西南段','1581 宽',true],['最大进深','3810（北窗 → 南墙）']],
+  tip:'南北 2870 是瓶颈。<b>1.5 m 床</b>横放后剩 1370，可放 600 深衣柜加 770 通道；换 1.8 m 床只剩 1070，放衣柜后通道仅 470，偏紧。',
+  dims:[[1009,7150,4117,7150,'3110'],[3800,4674,3800,7549,'2870'],[325,4430,2136,4430,'1811',1],[1009,7700,2586,7700,'1581',1],[1500,4121,1500,7927,'3810']]},
+ {id:'C',name:'卧室C',type:S.bed,label:6.8,area:6.83,raw:6.77,
+  poly:[[2705,7678],[5415,7678],[5415,10199],[2705,10199]],
+  glass:[[3]],
+  lab:[4250,8750],
+  main:['2710 × 2520','东西（窗 → 墙）× 南北'],
+  kv:[['东西 墙到墙','2700'],['形状','规整矩形，无凹凸']],
+  tip:'适合 <b>1.2 m 床</b>加书桌。1.5 m 床横放后南北只剩 1020，再放 600 深衣柜，通道仅 420。',
+  dims:[[2705,9800,5415,9800,'2710'],[3080,7678,3080,10199,'2520']]},
+ {id:'Bath',name:'卫生间',type:S.wet,label:4.3,area:4.34,raw:4.25,
+  poly:[[2813,10323],[5415,10323],[5415,11990],[2813,11990]],
+  glass:[],
+  lab:[3750,11030],small:true,
+  main:['2600 × 1670','东西 × 南北'],
+  kv:[['北墙墙垛','130 宽 × 660 长'],['墙垛分出两段','西 1470 ｜ 东 1000']],
+  tip:'墙垛东侧 <b>1000 宽</b> 的一段够做 900 × 900 以上的淋浴区，西侧 1470 留给马桶和台盆。',
+  stub:[4287,10323,4415,10993],
+  dims:[[2813,11760,5415,11760,'2600'],[5150,10323,5150,11990,'1670']]},
+ {id:'K',name:'厨房',type:S.wet,label:7.3,area:7.35,raw:7.24,
+  poly:[[9030,9988],[10374,9988],[10374,14434],[8728,14434],[8728,13801],[8328,13801],[8328,12114],[9030,12114]],
+  glass:[[0]],
+  lab:[9500,11500],small:true,
+  main:['东墙通长 4450','北窗 → 南墙'],
+  kv:[['北段','1348 宽 × 2130',true],['中段','2050 宽 × 1690'],['南段','1649 宽 × 640',true]],
+  tip:'沿东墙可做约 <b>4.4 m 一字台面</b>。北段放 600 深地柜后通道只剩约 750，低于常用的 800–900；中段 2050 可转成 L 型，中间留 850。',
+  dims:[[10100,9988,10100,14434,'4450'],[9030,10450,10374,10450,'1348',1],[8328,12900,10374,12900,'2050'],[8728,14180,10374,14180,'1649',1]]},
+ {id:'L',name:'客厅',type:S.live,label:29.7,area:29.83,raw:29.61,
+  poly:[[5993,5473],[8523,5473],[8523,6252],[8906,6252],[8906,11990],[8219,11990],[8219,13801],[6818,13801],[6818,14484],[5509,14484],[5509,14200],[5013,14200],[5013,12113],[5542,12113],[5542,7550],[4239,7550],[4239,6233],[5993,6233]],
+  glass:[[0],[11]],
+  lab:[7000,10350],
+  main:['3360 × 5740','主体 东西 × 南北，约 19.3 ㎡'],
+  kv:[['北窗段','2532 宽 × 760 深',true],['北侧通道带','4670 × 1320（A、B、C 门所在）'],['南段','3210 宽，至南墙 1690'],['玄关入户','1316 宽',true],['总进深','8330（北窗 → 南墙）']],
+  tip:'开间 3360：扣除沙发约 0.9 m、电视柜约 0.4 m，观看距离约 2.0 m，<b>55–65 寸</b>电视合适。六扇门都开向客厅，摆放时要给通道留线。',
+  dims:[[5542,8700,8906,8700,'3360'],[8650,6252,8650,11990,'5740'],[5993,5820,8523,5820,'2532',1],[4239,6950,8906,6950,'4670'],[4700,6233,4700,7550,'1320'],[5013,13050,8219,13050,'3210'],[7900,5473,7900,13801,'8330'],[5509,14260,6818,14260,'1316',1]]}
+];
+// chain originals that override measured edge lengths in edge mode
+const exactEdges={A:{2231:2235},B:{1811:1811,1577:1581},K:{1344:1348,1646:1649},L:{2530:2532,1309:1316}};
+
+// doors measured on image 1, same scale and wall correction as the rooms (mm, plan coordinates)
+// axis h = door in an east-west wall; j = jamb faces along the wall; w = the two wall faces; side = which side the served room is on (-1 north/west, +1 south/east)
+const doors=[
+ {id:'M1',name:'入户门',kind:'swing',axis:'h',j:[5620,6414.2],w:[14483.6,14705.9],side:-1,into:-1,r:782,width:794,thick:222,p:[111,404],pn:['西','东'],
+  where:'南外墙 · 玄关',open:'平开 · 向内开 · 铰链东侧',
+  tip:'开足后门扇贴在东侧，门后只剩约 400 宽。门扇约 0.8 m，比玄关进深 690 略长，开足时会伸进客厅南段约 0.1 m。'},
+ {id:'M2',name:'厨房门',kind:'slide',axis:'v',j:[12252.2,13646.2],w:[8218.7,8328.1],side:1,width:1394,thick:109,p:[138,155],pn:['北','南'],
+  panels:[[8280.8,8327.1,12262.8,12966.5],[8208.1,8254.4,12953.2,13635.7]],
+  where:'厨房西侧 · 通客厅南段',open:'推拉 · 两扇',
+  tip:'两扇各约 700，不占开启空间。1394 是全屋最宽的门洞，打开后厨房中段与客厅南段基本连通。'},
+ {id:'M3',name:'卫生间门',kind:'slide',axis:'v',j:[10974.2,11869.7],w:[5415.3,5541.9],side:-1,width:895,thick:127,p:[651,120],pn:['北','南'],
+  panels:[[5465.5,5544.8,10984.8,11426.6],[5406,5465.5,11393.6,11859.1]],
+  where:'卫生间东墙南端 · 通客厅',open:'推拉 · 两扇',
+  tip:'推拉门不占卫生间内部空间。门洞北侧 651 的墙段，是卫生间东墙上唯一能靠墙放置物品的位置。'},
+ {id:'M4',name:'卧室C门',kind:'swing',axis:'h',j:[4465.8,5264.4],w:[7549.5,7677.8],side:1,into:1,r:739,width:799,thick:128,p:[1753,151],pn:['西','东'],
+  where:'卧室C 北墙东端 · 通北侧过道',open:'平开 · 向 C 内开 · 铰链东侧',
+  tip:'开启扇区占 C 东北角约 0.8 × 0.8 m。东墙在门扇以南还剩约 1.7 m，可放衣柜；门洞西侧的北墙长 1753，可放书桌。'},
+ {id:'M5',name:'卧室B门',kind:'swing',axis:'v',j:[6374.3,7173.1],w:[4116.8,4239.3],side:-1,into:-1,r:749,width:799,thick:123,p:[1700,376],pn:['北','南'],badgeAlong:6900,
+  where:'卧室B 东墙南段 · 通北侧过道',open:'平开 · 向 B 内开 · 铰链南侧',
+  tip:'开启扇区占 B 东墙南段约 0.8 × 0.8 m。门北侧东墙还有 1700，可放衣柜或书桌；门南侧只剩 376。'},
+ {id:'M6',name:'卧室A门',kind:'swing',axis:'h',j:[4393.1,5187],w:[6116,6232.9],side:-1,into:-1,r:779,width:794,thick:117,p:[147,178],pn:['西','东'],
+  where:'卧室A 入门过道南端 · 通北侧过道',open:'平开 · 向 A 内开 · 铰链东侧',
+  tip:'开启扇区落在 1120 宽的入门过道里，不占用卧室主体。'}
+];
+const doorLines={
+ A:'门 M6：入门过道南端，洞宽 794，向室内开，铰链在东侧。',
+ B:'门 M5：东墙南段，洞宽 799，向室内开；门北侧东墙长 1700，南侧 376。',
+ C:'门 M4：北墙东端，洞宽 799，向室内开；门西侧北墙长 1753。',
+ Bath:'门 M3：东墙南端，两扇推拉，洞宽 895；北侧墙段 651。',
+ K:'门 M2：西侧，两扇推拉，洞宽 1394。',
+ L:'门 M1 入户门：南墙，洞宽 794，向内开。M2、M3 和三间卧室的门也都开向客厅。'
+};
+
+const NS='http://www.w3.org/2000/svg';
+const svg=document.getElementById('plan');
+function el(tag,attrs,parent){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);(parent||svg).appendChild(e);return e}
+function pts(p){return p.map(q=>q.join(',')).join(' ')}
+function signedArea(p){let a=0;for(let i=0;i<p.length;i++){const [x1,y1]=p[i],[x2,y2]=p[(i+1)%p.length];a+=x1*y2-x2*y1}return a/2}
+
+const gWall=el('g',{}), gFill=el('g',{}), gGlass=el('g',{}), gMain=el('g',{}), gEdge=el('g',{}), gLab=el('g',{});
+el('text',{x:5300,y:-80,class:'north'},svg).textContent='北';
+el('path',{d:'M5300,-640 l-110,180 h220 z',fill:'var(--muted)'},svg);
+
+const polyEls={};
+rooms.forEach(r=>{
+  el('polygon',{points:pts(r.poly),class:'wall-poly'},gWall);
+  const pg=el('polygon',{points:pts(r.poly),class:'room-poly '+r.type,'data-room':r.id,tabindex:'-1'},gFill);
+  polyEls[r.id]=pg;
+  const sa=signedArea(r.poly);
+  // windows: draw along given edges, shifted outward into the wall
+  (r.glass||[]).forEach(([i])=>{
+    const a=r.poly[i], b=r.poly[(i+1)%r.poly.length];
+    let nx=b[1]-a[1], ny=-(b[0]-a[0]); const L=Math.hypot(nx,ny); nx/=L; ny/=L; if(sa<0){nx=-nx;ny=-ny}
+    el('line',{x1:a[0]+nx*115,y1:a[1]+ny*115,x2:b[0]+nx*115,y2:b[1]+ny*115,class:'glass'},gGlass);
+  });
+  if(r.stub) el('rect',{x:r.stub[0],y:r.stub[1]-60,width:r.stub[2]-r.stub[0],height:r.stub[3]-r.stub[1]+60,class:'stub'},gGlass);
+  // main dimension lines
+  const g=el('g',{class:r.type},gMain);
+  r.dims.forEach(([x1,y1,x2,y2,t,exact])=>{
+    el('line',{x1,y1,x2,y2,class:'dimline'},g);
+    const horiz=Math.abs(y2-y1)<1;
+    [[x1,y1],[x2,y2]].forEach(([x,y])=>el('line',{x1:x-70,y1:y+70,x2:x+70,y2:y-70,class:'dimtick'},g));
+    const mx=(x1+x2)/2, my=(y1+y2)/2;
+    const tx=el('text',{class:'dimtxt '+r.type+(exact?' exact':''),x:horiz?mx:mx-70,y:horiz?my-70:my},g);
+    if(!horiz) tx.setAttribute('transform',`rotate(-90 ${mx-70} ${my})`);
+    tx.textContent=t;
+  });
+  // edge lengths
+  for(let i=0;i<r.poly.length;i++){
+    const a=r.poly[i], b=r.poly[(i+1)%r.poly.length];
+    const len=Math.hypot(b[0]-a[0],b[1]-a[1]); if(len<440) continue;
+    let nx=-(b[1]-a[1]), ny=(b[0]-a[0]); const L=Math.hypot(nx,ny); nx/=L; ny/=L; if(sa<0){nx=-nx;ny=-ny}
+    const mx=(a[0]+b[0])/2+nx*230, my=(a[1]+b[1])/2+ny*230;
+    const key=Math.round(len); let txt=Math.round(len/10)*10, exact=false;
+    const ov=exactEdges[r.id]; if(ov){for(const k in ov){if(Math.abs(k-key)<4){txt=ov[k];exact=true}}}
+    const horiz=Math.abs(b[1]-a[1])<1;
+    const t=el('text',{x:mx,y:horiz?my+75:my,class:'edgetxt dimtxt '+r.type+(exact?' exact':'')},gEdge);
+    t.style.fill=exact?'var(--dim)':'';
+    if(!horiz) t.setAttribute('transform',`rotate(-90 ${mx} ${my+75})`);
+    t.textContent=txt;
+  }
+  // label
+  const k=r.small?0.78:1;
+  const n=el('text',{x:r.lab[0],y:r.lab[1],class:'rname'},gLab); n.textContent=r.name; n.style.fontSize=(380*k)+'px';
+  const ar=el('text',{x:r.lab[0],y:r.lab[1]+330*k,class:'rarea'},gLab); ar.textContent=r.label+'㎡'; ar.style.fontSize=(230*k)+'px';
+});
+gEdge.style.display='none';
+
+// mode toggle
+const bMain=document.getElementById('mode-main'), bEdge=document.getElementById('mode-edge');
+function setMode(m){gMain.style.display=m==='main'?'':'none';gEdge.style.display=m==='edge'?'':'none';bMain.setAttribute('aria-pressed',m==='main');bEdge.setAttribute('aria-pressed',m==='edge');try{localStorage.setItem('nd-mode',m)}catch(e){}}
+bMain.addEventListener('click',()=>setMode('main')); bEdge.addEventListener('click',()=>setMode('edge'));
+try{const m=localStorage.getItem('nd-mode'); if(m==='edge')setMode('edge')}catch(e){}
+
+// schedule cards
+const sched=document.getElementById('schedule');
+const cards={};
+rooms.forEach(r=>{
+  const c=document.createElement('article'); c.className='card'; c.tabIndex=0; c.dataset.room=r.id;
+  const kv=r.kv.map(([k,v,ex])=>`<dt>${k}</dt><dd>${v}${ex?'<span class="exact-mark">原值</span>':''}</dd>`).join('');
+  c.innerHTML=`<div class="card-top"><h3>${r.name}</h3><span class="areas">标注 <span class="num">${r.label}</span> ㎡ · 复算 <span class="num">${r.area.toFixed(2)}</span></span></div>
+  <div class="main-dim"><span class="big">${r.main[0]}</span><span class="cap">${r.main[1]}</span></div>
+  <dl class="kv">${kv}</dl><p class="door-line doors-only">${doorLines[r.id]}</p><p class="insight">${r.tip}</p>`;
+  sched.appendChild(c); cards[r.id]=c;
+});
+let active=null;
+function select(id){
+  active=(active===id)?null:id;
+  rooms.forEach(r=>{polyEls[r.id].classList.toggle('on',r.id===active);cards[r.id].classList.toggle('on',r.id===active)});
+}
+Object.values(polyEls).forEach(p=>p.addEventListener('click',()=>{select(p.dataset.room);if(active&&window.innerWidth<=980)cards[active].scrollIntoView({behavior:'smooth',block:'nearest'})}));
+Object.values(cards).forEach(c=>{c.addEventListener('click',()=>select(c.dataset.room));c.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();select(c.dataset.room)}})});
+
+// area table
+const ar=document.getElementById('area-rows');
+rooms.forEach(r=>{
+  const d=(r.area/r.label-1)*100, d0=(r.raw/r.label-1)*100;
+  ar.insertAdjacentHTML('beforeend',`<tr><td>${r.name}</td><td class="num">${r.label.toFixed(1)}</td><td class="num neg">${r.raw.toFixed(2)} <small>(${d0.toFixed(1)}%)</small></td><td class="num">${r.area.toFixed(2)}</td><td class="num">${d>=0?'+':''}${d.toFixed(1)}%</td></tr>`);
+});
+// final table
+const fr=document.getElementById('final-rows');
+rooms.forEach(r=>{
+  const sub=r.kv.map(([k,v,ex])=>`${k} <span class="mono">${v}</span>${ex?'<span class="exact-mark">原值</span>':''}`).join('；');
+  fr.insertAdjacentHTML('beforeend',`<tr><td class="rm">${r.name}</td><td><span class="big">${r.main[0]}</span></td><td class="num">${r.label} / ${r.area.toFixed(2)}</td><td class="sub">${sub}</td></tr>`);
+});
+// ---------- doors ----------
+const gDoor=el('g',{id:'doors'}); gDoor.style.display='none';
+const doorEls={};
+const P=(d,along,across)=>d.axis==='h'?[along,across]:[across,along];
+doors.forEach(d=>{
+  const g=el('g',{class:'door-g','data-door':d.id},gDoor); doorEls[d.id]=g;
+  const [j0,j1]=d.j, [w0,w1]=d.w;
+  // opening: cut the wall between the two jambs
+  const a=P(d,j0,w0), b=P(d,j1,w1);
+  el('rect',{x:Math.min(a[0],b[0]),y:Math.min(a[1],b[1]),width:Math.abs(b[0]-a[0]),height:Math.abs(b[1]-a[1]),class:'d-gap'},g);
+  if(d.kind==='swing'){
+    const face=d.into<0?w0:w1, W=d.width;
+    const H=P(d,j1,face), T=P(d,j1,face+d.into*W), C=P(d,j0,face);
+    const cr=(T[0]-H[0])*(C[1]-H[1])-(T[1]-H[1])*(C[0]-H[0]);
+    el('path',{d:`M${T[0]},${T[1]} A${W},${W} 0 0 ${cr>0?1:0} ${C[0]},${C[1]}`,class:'d-arc'},g);
+    el('line',{x1:H[0],y1:H[1],x2:T[0],y2:T[1],class:'d-leaf'},g);
+  }else{
+    d.panels.forEach(([x0,x1,y0,y1])=>el('rect',{x:x0,y:y0,width:x1-x0,height:y1-y0,class:'d-panel'},g));
+  }
+  // dimension chain along the wall, inside the room the door serves: pier · opening · pier
+  const cA=(d.side<0?w0:w1)+d.side*170;
+  const pts=[j0-d.p[0],j0,j1,j1+d.p[1]];
+  const s=P(d,pts[0],cA), e=P(d,pts[3],cA);
+  el('line',{x1:s[0],y1:s[1],x2:e[0],y2:e[1],class:'d-chain'},g);
+  pts.forEach(v=>{const q=P(d,v,cA);el('line',{x1:q[0]-60,y1:q[1]+60,x2:q[0]+60,y2:q[1]-60,class:'d-tick'},g)});
+  [[pts[0],pts[1],d.p[0],false],[pts[1],pts[2],d.width,true],[pts[2],pts[3],d.p[1],false]].forEach(([s0,s1,val,isOpen],i)=>{
+    let along=(s0+s1)/2, anchor='middle';
+    if(!isOpen && s1-s0<300){
+      if(i===0){along=s0-110;anchor=d.axis==='h'?'end':'start'}else{along=s1+110;anchor=d.axis==='h'?'start':'end'}
+    }
+    const across=d.side<0?cA-(d.axis==='h'?80:70):cA+250;
+    const q=P(d,along,across);
+    const t=el('text',{x:q[0],y:q[1],class:'d-txt'+(isOpen?' open':''),'text-anchor':anchor},g);
+    if(d.axis==='v') t.setAttribute('transform',`rotate(-90 ${q[0]} ${q[1]})`);
+    t.textContent=val;
+  });
+  // number badge on the far side of the wall
+  const far=d.side<0?w1:w0;
+  const bq=P(d,d.badgeAlong??(j0+j1)/2,far-d.side*330);
+  const bg=el('g',{class:'d-badge'},g);
+  el('circle',{cx:bq[0],cy:bq[1],r:190},bg);
+  el('text',{x:bq[0],y:bq[1]},bg).textContent=d.id;
+});
+
+// door list in the side panel and the final door table
+const dlist=document.getElementById('dlist'), ditems={};
+const dr=document.getElementById('door-rows');
+doors.forEach(d=>{
+  const li=document.createElement('li'); li.className='ditem'; li.tabIndex=0; li.dataset.door=d.id;
+  li.innerHTML=`<span class="id">${d.id}</span><span class="dn">${d.name}<small>${d.where}</small></span>
+  <span class="dnum"><span>门洞 <b>${d.width}</b></span><span>门垛 ${d.pn[0]} ${d.p[0]} · ${d.pn[1]} ${d.p[1]}</span><span>墙厚 ${d.thick}</span>${d.r?`<span>开启半径 ${d.r}</span>`:''}<span>${d.open}</span></span>
+  <span class="dtip">${d.tip}</span>`;
+  dlist.appendChild(li); ditems[d.id]=li;
+  dr.insertAdjacentHTML('beforeend',`<tr><td class="rm">${d.id} ${d.name}</td><td class="sub">${d.where}</td><td>${d.open}</td><td class="num"><span class="big">${d.width}</span></td><td class="num">${d.pn[0]} ${d.p[0]} / ${d.pn[1]} ${d.p[1]}</td><td class="num">${d.thick}</td><td class="num">${d.r?d.r:'推拉'}</td></tr>`);
+});
+let activeDoor=null;
+function selectDoor(id){
+  activeDoor=(activeDoor===id)?null:id;
+  doors.forEach(d=>{doorEls[d.id].classList.toggle('on',d.id===activeDoor);ditems[d.id].classList.toggle('on',d.id===activeDoor)});
+}
+Object.values(doorEls).forEach(g=>g.addEventListener('click',ev=>{ev.stopPropagation();selectDoor(g.dataset.door);if(activeDoor)ditems[activeDoor].scrollIntoView({behavior:'smooth',block:'nearest'})}));
+Object.values(ditems).forEach(li=>{li.addEventListener('click',()=>selectDoor(li.dataset.door));li.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectDoor(li.dataset.door)}})});
+
+// the switch
+const tg=document.getElementById('door-toggle'), panel=document.getElementById('doors-panel');
+function setDoors(on){
+  gDoor.style.display=on?'':'none';
+  gMain.classList.toggle('fade',on); gEdge.classList.toggle('fade',on);
+  document.body.classList.toggle('doors-on',on);
+  tg.setAttribute('aria-checked',on?'true':'false');
+  panel.hidden=!on;
+  try{localStorage.setItem('nd-doors',on?'1':'0')}catch(e){}
+}
+tg.addEventListener('click',()=>setDoors(tg.getAttribute('aria-checked')!=='true'));
+try{if(localStorage.getItem('nd-doors')==='1')setDoors(true)}catch(e){}
+})();
+</script>
+
+</body></html>
