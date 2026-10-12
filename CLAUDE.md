@@ -11,7 +11,7 @@
 | `docs/plan/` | 正式产出物：诊断表、方案文档、可视化页面 | 文件名 = 任务名 + 24 小时制时间戳，如 `客厅微改方案-202609301530.md` |
 | `mid/` | 过程文件：全景展开图、提取脚本、截图、中间计算 | 可随时重新生成，不作为交付依据，不入库 |
 | `viz/` | 方案对比的 3D 源码：`src/` 为页面一（第一组三方案），`src/creative/` 为页面二（创意三方案，含机构数据层 `rig.js`）；`src/house.js` 为两页共用的其他房间外壳（只建模不做设计）；`scripts/` 为校验、构建、截图、变异测试脚本 | 几何与家具数据只改 `geometry.js`、`house.js` 与各页的 `schemes.js`，改后先跑 `npm run validate`；构建用 `node viz/scripts/build.mjs <时间戳> basic\|creative` |
-| `src/floorplan/` | 户型三维：按复尺内墙轮廓建的整屋模型，含鸟瞰、俯视、漫游 | 轮廓、门和示意家具只改 `plan-data.ts`，墙体几何只改 `geometry.ts`；改后跑 `npm run audit:plan`。这里的家具是放得下的示意，不是上一任住户的物品，也不是微改方案 |
+| `src/floorplan/` | 户型三维：按复尺内墙轮廓建的整屋模型，含鸟瞰、俯视、漫游，以及客厅三方案（减 / 分 / 空） | 轮廓、门和示意家具只改 `plan-data.ts`，墙体几何只改 `geometry.ts`，三方案的摆放只改 `living-schemes.ts`；改后跑 `npm run audit:plan`。示意家具不是上一任住户的物品。三方案的尺寸来自方案页，位置按净尺寸核算重摆 |
 | `src/styles.css` | 户型三维的界面色和字体 | 只服务户型三维。色值写在本文件的 `@theme`，不走 `viz/src/tokens.css` |
 | `index.html` | 户型三维入口 | 本地用 `npm run dev:plan` 打开。这是 Vite 应用，不是 `file://` 单页 |
 | `docs/plan/户型净尺寸核算-202610121252.html` | 复尺净尺寸核算底稿 | 户型三维与它对账。不在这里改微改方案 |

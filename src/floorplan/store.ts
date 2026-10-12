@@ -1,7 +1,9 @@
 import { create } from "zustand";
 import { DOORS } from "./plan-data";
+import type { Scene, SchemeId } from "./living-schemes";
 
 export type ViewMode = "orbit" | "top" | "walk";
+export type SchemeMode = "show" | SchemeId;
 
 type Stick = { x: number; y: number };
 
@@ -16,7 +18,11 @@ type PlanState = {
   doors: Record<string, number>;
   focus: { id: string; n: number } | null;
   stick: Stick;
+  scheme: SchemeMode;
+  scene: Scene;
   setMode: (mode: ViewMode) => void;
+  setScheme: (scheme: SchemeMode) => void;
+  setScene: (scene: Scene) => void;
   toggleSection: () => void;
   toggleFurniture: () => void;
   toggleLabels: () => void;
@@ -41,7 +47,11 @@ export const usePlan = create<PlanState>((set, get) => ({
   doors: openDoors,
   focus: null,
   stick: { x: 0, y: 0 },
+  scheme: "show",
+  scene: "daily",
   setMode: (mode) => set({ mode }),
+  setScheme: (scheme) => set({ scheme, focus: scheme === "show" ? get().focus : { id: "L", n: (get().focus?.n ?? 0) + 1 } }),
+  setScene: (scene) => set({ scene }),
   toggleSection: () => set({ section: !get().section }),
   toggleFurniture: () => set({ furniture: !get().furniture }),
   toggleLabels: () => set({ labels: !get().labels }),

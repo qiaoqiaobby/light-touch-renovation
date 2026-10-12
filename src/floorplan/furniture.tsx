@@ -1,7 +1,17 @@
 import { useMemo } from "react";
 import { FURNITURE, type Furn } from "./plan-data";
 import { wx, wz } from "./geometry";
+import { SCHEMES, resolvePieces, toFurn } from "./living-schemes";
 import { usePlan } from "./store";
+
+function Block({ w, d, h, color }: { w: number; d: number; h: number; color: string }) {
+  return (
+    <mesh position={[0, h / 2, 0]} castShadow receiveShadow>
+      <boxGeometry args={[w, h, d]} />
+      <Mat color={color} roughness={0.72} />
+    </mesh>
+  );
+}
 
 function Mat({
   color,
@@ -362,12 +372,14 @@ function Piece({ f }: { f: Furn }) {
         return <Counter w={w} d={d} color={f.color} />;
       case "fridge":
         return <Fridge w={w} d={d} color={f.color} />;
+      case "block":
+        return <Block w={w} d={d} h={(f.h ?? 400) / 1000} color={f.color} />;
       default:
         return null;
     }
   })();
   return (
-    <group position={[wx(f.cx), 0, wz(f.cy)]} rotation={[0, (-f.rot * Math.PI) / 180, 0]}>
+    <group position={[wx(f.cx), (f.z ?? 0) / 1000, wz(f.cy)]} rotation={[0, (-f.rot * Math.PI) / 180, 0]}>
       {body}
     </group>
   );
@@ -375,12 +387,19 @@ function Piece({ f }: { f: Furn }) {
 
 export function Furniture() {
   const on = usePlan((s) => s.furniture);
-  const items = useMemo(() => FURNITURE, []);
+  const scheme = usePlan((s) => s.scheme);
+  const scene = usePlan((s) => s.scene);
+  const items = useMemo(() => {
+    if (scheme === "show") return FURNITURE;
+    const plan = SCHEMES.find((s) => s.id === scheme);
+    const living = plan ? resolvePieces(plan, scene).map(toFurn) : [];
+    return [...FURNITURE.filter((f) => f.room !== "L"), ...living];
+  }, [scheme, scene]);
   if (!on) return null;
   return (
     <group>
       {items.map((f) => (
-        <Piece key={f.id} f={f} />
+        <Piece key={`${f.room}-${f.id}`} f={f} />
       ))}
     </group>
   );

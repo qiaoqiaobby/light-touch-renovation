@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { DOORS, ROOMS } from "./plan-data";
 import { planArea } from "./geometry";
-import { usePlan, type ViewMode } from "./store";
+import { SCENES, SCHEMES } from "./living-schemes";
+import { usePlan, type SchemeMode, type ViewMode } from "./store";
+
+const SCHEME_BUTTONS: { id: SchemeMode; label: string }[] = [
+  { id: "show", label: "示意" },
+  ...SCHEMES.map((s) => ({ id: s.id, label: s.label })),
+];
 
 const MODES: { id: ViewMode; label: string }[] = [
   { id: "orbit", label: "鸟瞰" },
@@ -61,6 +67,12 @@ export function Hud() {
   const hour = usePlan((s) => s.hour);
   const selected = usePlan((s) => s.selected);
   const doors = usePlan((s) => s.doors);
+  const scheme = usePlan((s) => s.scheme);
+  const scene = usePlan((s) => s.scene);
+  const schemeNote =
+    scheme === "show"
+      ? "示意家具只说明放得下。减、分、空来自客厅三方案，已按净尺寸核算的 3364 × 5738 主体重摆。"
+      : SCHEMES.find((s) => s.id === scheme)?.note;
   const [locked, setLocked] = useState(false);
   const [coarse, setCoarse] = useState(false);
   const room = ROOMS.find((r) => r.id === selected) ?? null;
@@ -119,6 +131,32 @@ export function Hud() {
           ))}
         </div>
       </header>
+
+      <div className="mt-3 flex max-w-3xl flex-wrap items-center gap-2">
+        {SCHEME_BUTTONS.map((s) => (
+          <button
+            key={s.id}
+            type="button"
+            className={`pointer-events-auto h-11 rounded-sm px-3 text-sm ${scheme === s.id ? "bg-ink text-sheet" : "bg-sheet text-ink"}`}
+            onClick={() => usePlan.getState().setScheme(s.id)}
+          >
+            {s.label}
+          </button>
+        ))}
+        {scheme !== "show"
+          ? SCENES.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                className={`pointer-events-auto h-11 rounded-sm px-3 text-sm ${scene === s.id ? "bg-dim text-sheet" : "bg-sheet text-ink"}`}
+                onClick={() => usePlan.getState().setScene(s.id)}
+              >
+                {s.label}
+              </button>
+            ))
+          : null}
+        <p className="pointer-events-none basis-full text-sm text-muted">{schemeNote}</p>
+      </div>
 
       <div className="mt-3 flex flex-wrap gap-2 sm:mr-80">
         <button

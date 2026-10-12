@@ -49,7 +49,8 @@ export type FurnType =
   | "vanity"
   | "shower"
   | "counter"
-  | "fridge";
+  | "fridge"
+  | "block";
 
 export type Furn = {
   id: string;
@@ -63,6 +64,9 @@ export type Furn = {
   /** Degrees clockwise in plan. Matches the floorplan-3d convention. */
   rot: number;
   color: string;
+  /** Optional height and bottom, millimetres. Used by scheme blocks. */
+  h?: number;
+  z?: number;
 };
 
 export const CEILING = 2.7;
