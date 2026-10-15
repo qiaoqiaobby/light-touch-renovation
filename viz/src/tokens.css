@@ -58,6 +58,23 @@
   --lh-label: 1.4;
   --lh-caption: 1.5;
 
+  /* 页面三：拼贴板（全屋风格方案） */
+  --page-max-w: 1440px;
+  --tile-col: 190px;       /* 拼贴块瀑布流的最小列宽 */
+  --tile-col-mini: 120px;  /* 并排比较里的缩略拼贴 */
+  --compare-col: 300px;    /* 并排比较的最小列宽 */
+  --swatch-lg: 40px;       /* 色板主色块 */
+  --badge: 20px;           /* 编号圆标 */
+  --mix-h: 8px;            /* 风格配比条高度 */
+  --plan-max-h: 72vh;
+  --c-plan-room: #ffffff;
+  --c-plan-line: #404040;
+  --c-plan-fixed: #a3a3a3;
+  --c-plan-plain: #e5e5e5; /* 没有对应拼贴的物件 */
+  --c-mix-1: #404040;
+  --c-mix-2: #8a8a8a;
+  --c-mix-3: #c4c4c4;
+
   /* 动效 */
   --dur: 120ms;
   --ease: ease-out;

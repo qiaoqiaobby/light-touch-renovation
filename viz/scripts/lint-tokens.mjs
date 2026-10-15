@@ -32,16 +32,19 @@ for (const [k, v] of Object.entries(tokens).filter(([k]) => k.startsWith('--fs-'
 }
 
 const VISUAL = /^(color|background|background-color|border|border-[\w-]+|outline|outline-offset|padding|padding-[\w-]+|margin|margin-[\w-]+|gap|font-size|font-weight|line-height|border-radius|box-shadow|transition|width|height|top|right|bottom|left)$/;
-const raw = [];
-readFileSync(src('styles.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').split('\n').forEach((line, i) => {
-  for (const m of line.matchAll(/([\w-]+)\s*:\s*([^;{}]+)/g)) {
-    const [, prop, val] = m;
-    if (!VISUAL.test(prop)) continue;
-    const stripped = val.replace(/var\([^)]*\)/g, '');
-    if (/#[0-9a-f]{3,8}\b|\b\d*\.?\d+(px|ms|rem|em|vh|vw)\b|rgba?\(/i.test(stripped)) raw.push(`styles.css:${i + 1} ${prop}: ${val.trim()}`);
-  }
-});
-results.push([raw.length === 0, `styles.css 视觉数值未引用 tokens：${raw.length} 处${raw.length ? '\n    ' + raw.join('\n    ') : ''}`]);
+// 页面一、二的 styles.css 与页面三（boards/src/styles.css）共用同一份 tokens
+for (const [label, file] of [['styles.css', src('styles.css')], ['boards/src/styles.css', resolve(src('.'), '../../boards/src/styles.css')]]) {
+  const raw = [];
+  readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').split('\n').forEach((line, i) => {
+    for (const m of line.matchAll(/([\w-]+)\s*:\s*([^;{}]+)/g)) {
+      const [, prop, val] = m;
+      if (!VISUAL.test(prop)) continue;
+      const stripped = val.replace(/var\([^)]*\)/g, '');
+      if (/#[0-9a-f]{3,8}\b|\b\d*\.?\d+(px|ms|rem|em|vh|vw)\b|rgba?\(/i.test(stripped)) raw.push(`${label}:${i + 1} ${prop}: ${val.trim()}`);
+    }
+  });
+  results.push([raw.length === 0, `${label} 视觉数值未引用 tokens：${raw.length} 处${raw.length ? '\n    ' + raw.join('\n    ') : ''}`]);
+}
 
 // 页面二：变形动效 tokens 存在、时长 ≤ 600ms，且「减弱动效」时归零（DESIGN.md 第 6 节）
 const tokensRaw = readFileSync(src('tokens.css'), 'utf8');

@@ -31,6 +31,31 @@ export type Collider = {
   holes: { x0: number; z0: number; x1: number; z1: number; id: string }[];
 };
 
+/** A solid or glass band of a wall. y is metres from the floor, a is millimetres along the wall. */
+export type Band = { a0: number; a1: number; y0: number; y1: number };
+
+/** Split a wall into solid bands and window glass. Same cuts WallSolid used before this was shared. */
+export function splitWall(wall: Wall, height: number): { solids: Band[]; glasses: Band[] } {
+  const cuts = [...wall.openings].sort((a, b) => a.a0 - b.a0);
+  const solids: Band[] = [];
+  const glasses: Band[] = [];
+  let cursor = wall.a0;
+  for (const o of cuts) {
+    const s0 = Math.max(o.a0, wall.a0);
+    const s1 = Math.min(o.a1, wall.a1);
+    if (s1 - s0 < 20) continue;
+    if (s0 > cursor + 8) solids.push({ a0: cursor, a1: s0, y0: 0, y1: height });
+    const head = Math.min(o.head, height);
+    const sill = Math.min(o.sill, head);
+    if (sill > 0.02) solids.push({ a0: s0, a1: s1, y0: 0, y1: sill });
+    if (height > head + 0.02) solids.push({ a0: s0, a1: s1, y0: head, y1: height });
+    if (o.kind === "window" && head - sill > 0.08) glasses.push({ a0: s0, a1: s1, y0: sill, y1: head });
+    cursor = Math.max(cursor, s1);
+  }
+  if (wall.a1 > cursor + 8) solids.push({ a0: cursor, a1: wall.a1, y0: 0, y1: height });
+  return { solids, glasses };
+}
+
 const EXT = 240;
 const SEAL = 10;
 

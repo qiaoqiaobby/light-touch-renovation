@@ -12,7 +12,15 @@
     "build:plan": "vite build",
     "preview:plan": "vite preview --host 127.0.0.1 --port 4173",
     "audit:plan": "node scripts/audit-plan.mjs",
-    "typecheck": "tsc --noEmit"
+    "decor:audit": "node scripts/audit-decor.mjs",
+    "decor:dev": "vite --config vite.decor.config.ts --open /decor.html",
+    "decor:build": "node scripts/build-decor.mjs",
+    "decor:shots": "node scripts/decor-shots.mjs",
+    "typecheck": "tsc --noEmit",
+    "board:crop": "python3 boards/scripts/crop.py",
+    "board:check": "node boards/scripts/check.mjs --mutate",
+    "board:build": "node boards/scripts/build.mjs",
+    "board:shots": "node boards/scripts/shots.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",

@@ -1,0 +1,162 @@
+/* 页面三：全屋风格方案拼贴板。视觉数值全部来自 viz/src/tokens.css，语义见 DESIGN.md 页面三 */
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--c-bg);
+  color: var(--c-text);
+  font-family: var(--font);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  font-variant-numeric: tabular-nums;
+}
+h1, h2, h3, p, figure, dl, dd { margin: 0; }
+h1, h2 { font-size: var(--fs-title); font-weight: var(--fw-bold); line-height: var(--lh-title); }
+h3 { font-size: var(--fs-body); font-weight: var(--fw-medium); line-height: var(--lh-label); }
+
+.top, main, .foot { max-width: var(--page-max-w); margin: 0 auto; padding: var(--s-4) var(--s-5); }
+.top { display: grid; gap: var(--s-3); border-bottom: var(--border-w) solid var(--c-border); }
+.title-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-2) var(--s-4); }
+.meta { color: var(--c-text-2); font-size: var(--fs-caption); line-height: var(--lh-caption); }
+.bars { display: flex; flex-wrap: wrap; gap: var(--s-3); }
+
+/* 分段按钮：状态定义同页面一 DESIGN.md 5a */
+.seg { display: inline-flex; flex-wrap: wrap; border: var(--border-w) solid var(--c-border); border-radius: var(--radius); overflow: hidden; }
+.seg button {
+  font: inherit; font-weight: var(--fw-medium); line-height: var(--lh-label);
+  color: var(--c-text); background: transparent; border: 0;
+  border-right: var(--border-w) solid var(--c-border);
+  padding: var(--s-1) var(--s-3); cursor: pointer;
+  transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.seg button:last-child { border-right: 0; }
+.seg button:hover { background: var(--c-surface-hover); }
+.seg button:active { background: var(--c-surface-active); }
+.seg button[aria-pressed="true"] { background: var(--c-selected-bg); color: var(--c-selected-text); }
+.seg button:focus-visible, .tile:focus-visible, .link:focus-visible { outline: var(--focus-w) solid var(--c-focus); outline-offset: var(--focus-offset); }
+.seg button:disabled { color: var(--c-text-disabled); cursor: not-allowed; background: transparent; }
+.rooms { justify-self: start; }
+
+main { display: grid; gap: var(--s-6); }
+.caption { font-size: var(--fs-caption); line-height: var(--lh-caption); color: var(--c-text-2); }
+
+/* 方案头 */
+.head { display: grid; gap: var(--s-4); }
+.name-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-2) var(--s-3); }
+.chip { font-size: var(--fs-caption); line-height: var(--lh-caption); border: var(--border-w) solid var(--c-border); border-radius: var(--radius); padding: 0 var(--s-2); color: var(--c-text-2); }
+.chip.strong { border-color: var(--c-text); color: var(--c-text); }
+.claim { max-width: 46em; }
+.facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--s-2) var(--s-4); max-width: 60em; }
+.facts dt { color: var(--c-text-2); }
+.mix { display: grid; gap: var(--s-1); max-width: 28em; }
+.mix-bar { display: flex; height: var(--mix-h); border-radius: var(--radius); overflow: hidden; }
+.mix-bar span:nth-child(1) { background: var(--c-mix-1); }
+.mix-bar span:nth-child(2) { background: var(--c-mix-2); }
+.mix-bar span:nth-child(3) { background: var(--c-mix-3); }
+.mix-legend { display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-3); font-size: var(--fs-caption); line-height: var(--lh-caption); }
+
+/* 色板 */
+.palette { display: flex; flex-wrap: wrap; gap: var(--s-4) var(--s-6); }
+.pgroup { display: grid; gap: var(--s-2); align-content: start; }
+.pgroup ul { display: flex; flex-wrap: wrap; gap: var(--s-3); margin: 0; padding: 0; list-style: none; }
+.sw { display: grid; grid-template-columns: var(--swatch-lg) auto; gap: 0 var(--s-2); align-items: center; font-size: var(--fs-caption); line-height: var(--lh-caption); }
+.sw i, .sw img { grid-row: span 2; width: var(--swatch-lg); height: var(--swatch-lg); border-radius: var(--radius); border: var(--border-w) solid var(--c-border); object-fit: cover; }
+.sw small { color: var(--c-text-2); font-size: var(--fs-caption); }
+
+/* 房间 */
+.room { display: grid; gap: var(--s-4); border-top: var(--border-w) solid var(--c-border); padding-top: var(--s-5); }
+.room-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-2) var(--s-4); }
+.room-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: var(--s-5); align-items: start; }
+.board { columns: var(--tile-col); column-gap: var(--s-3); }
+.board.mini { columns: var(--tile-col-mini); column-gap: var(--s-2); }
+
+.tile {
+  break-inside: avoid; margin: 0 0 var(--s-3); display: grid; gap: var(--s-1);
+  border: var(--border-w) solid transparent; border-radius: var(--radius); padding: var(--s-1);
+  transition: background-color var(--dur) var(--ease);
+}
+.tile:hover, .tile.on { background: var(--c-surface-hover); border-color: var(--c-border); }
+.tile img { display: block; width: 100%; height: auto; border-radius: var(--radius); }
+.tile figcaption { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0 var(--s-2); font-size: var(--fs-caption); line-height: var(--lh-caption); }
+.tile b { font-weight: var(--fw-medium); }
+.tile .take, .tile .src { grid-column: 2; color: var(--c-text-2); }
+.badge {
+  grid-row: span 3; align-self: start; min-width: var(--badge); height: var(--badge); padding: 0 var(--s-1);
+  border-radius: var(--badge); background: var(--c-selected-bg); color: var(--c-selected-text);
+  font-size: var(--fs-caption); line-height: var(--badge); text-align: center;
+}
+.badge.soft { background: var(--c-level-1-bg); color: var(--c-level-1-text); }
+.board.mini .tile figcaption { display: none; }
+.board.mini .tile { margin-bottom: var(--s-2); padding: 0; }
+
+/* 平面 */
+.plan { display: grid; gap: var(--s-2); position: sticky; top: var(--s-4); }
+.plan svg { width: 100%; height: auto; max-height: var(--plan-max-h); background: var(--c-bg); }
+.plan .legend { display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-4); }
+.legend span::before { content: ""; display: inline-block; width: var(--s-3); height: var(--s-3); margin-right: var(--s-1); vertical-align: -1px; border: var(--border-w) solid var(--c-plan-line); }
+.legend .lg-new::before { background: var(--c-mix-3); }
+.legend .lg-fixed::before { background: repeating-linear-gradient(45deg, var(--c-plan-fixed) 0 var(--border-w), transparent var(--border-w) var(--s-1)); }
+.legend .lg-soft::before { border-style: dashed; }
+svg .room { fill: var(--c-plan-room); stroke: var(--c-plan-line); }
+svg .glass { stroke: var(--c-plan-fixed); }
+svg .fixed { fill: url(#hatch); stroke: var(--c-plan-fixed); }
+svg .hatch-bg { fill: var(--c-plan-room); }
+svg .hatch-line { stroke: var(--c-plan-fixed); }
+svg .fixed.zone { fill: none; stroke-dasharray: 4 3; }
+svg .piece { stroke: var(--c-plan-line); }
+svg .piece.plain { fill: var(--c-plan-plain); }
+svg .piece.soft { fill-opacity: 0.35; stroke-dasharray: 5 3; }
+svg .piece.air { fill: none; stroke-dasharray: 3 3; }
+svg .piece.on, svg .badge-g.on circle { stroke: var(--c-focus); stroke-width: 3; }
+svg .door { fill: none; stroke: var(--c-plan-line); }
+svg .door-arc { stroke-dasharray: 4 3; }
+svg .dim { stroke: var(--c-text-2); }
+svg .badge-g circle { fill: var(--c-selected-bg); }
+svg .badge-g text { fill: var(--c-selected-text); }
+svg .label { fill: var(--c-text-2); }
+svg .dim-t { fill: var(--c-text); }
+svg .label, svg .dim-t { paint-order: stroke; stroke: var(--c-plan-room); stroke-linejoin: round; }
+svg [data-piece] { cursor: pointer; }
+
+/* 表格 */
+.tbl { width: 100%; border-collapse: collapse; }
+.tbl th, .tbl td { text-align: left; vertical-align: top; padding: var(--s-2) var(--s-3); border-bottom: var(--border-w) solid var(--c-border); }
+.tbl th { font-weight: var(--fw-medium); color: var(--c-text-2); white-space: nowrap; }
+.tbl td.num { white-space: nowrap; }
+.lv { display: inline-block; min-width: var(--s-6); text-align: center; border-radius: var(--radius); font-size: var(--fs-caption); line-height: var(--lh-caption); border: var(--border-w) solid var(--c-level-0-text); }
+.lv.L0 { background: var(--c-level-0-bg); color: var(--c-level-0-text); }
+.lv.L1 { background: var(--c-level-1-bg); color: var(--c-level-1-text); border-color: var(--c-level-1-bg); }
+.lv.L2 { background: var(--c-level-2-bg); color: var(--c-level-2-text); border-color: var(--c-level-2-bg); }
+.lv.L3 { background: var(--c-level-3-bg); color: var(--c-level-3-text); border-color: var(--c-level-3-bg); }
+.lv.L4 { background: var(--c-level-4-bg); color: var(--c-level-4-text); border-style: dashed; border-color: var(--c-bg); }
+.wrap-x { overflow-x: auto; }
+.swatch-cell { display: flex; gap: var(--s-2); align-items: center; }
+.swatch-cell img { width: var(--swatch); height: var(--swatch); border-radius: var(--radius); border: var(--border-w) solid var(--c-border); object-fit: cover; }
+
+/* 全屋 */
+.stack { display: grid; gap: var(--s-5); }
+.plain-list { margin: 0; padding: 0; list-style: none; }
+.house-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: var(--s-5); align-items: start; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--compare-col), 1fr)); gap: var(--s-4); }
+.card { display: grid; gap: var(--s-2); border: var(--border-w) solid var(--c-border); border-radius: var(--radius); padding: var(--s-3); align-content: start; }
+.link {
+  justify-self: start; font: inherit; font-size: var(--fs-caption); line-height: var(--lh-caption); font-weight: var(--fw-medium);
+  color: var(--c-text); background: transparent; border: var(--border-w) solid var(--c-border); border-radius: var(--radius);
+  padding: var(--s-1) var(--s-2); cursor: pointer; transition: background-color var(--dur) var(--ease);
+}
+.link:hover { background: var(--c-surface-hover); }
+.link:active { background: var(--c-surface-active); }
+.counts { display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-2); align-items: center; font-size: var(--fs-caption); line-height: var(--lh-caption); }
+
+/* 并排比较 */
+.compare { display: grid; grid-template-columns: repeat(auto-fit, minmax(var(--compare-col), 1fr)); gap: var(--s-4); align-items: start; }
+.col { display: grid; gap: var(--s-3); border: var(--border-w) solid var(--c-border); border-radius: var(--radius); padding: var(--s-3); }
+.col.cur { border-color: var(--c-text); }
+.col .plan { position: static; }
+
+.foot { color: var(--c-text-2); font-size: var(--fs-caption); line-height: var(--lh-caption); display: grid; gap: var(--s-1); border-top: var(--border-w) solid var(--c-border); }
+
+@media (max-width: 900px) {
+  .room-grid, .house-grid { grid-template-columns: minmax(0, 1fr); }
+  .plan { position: static; }
+  .top, main, .foot { padding-left: var(--s-4); padding-right: var(--s-4); }
+}

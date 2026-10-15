@@ -3,7 +3,7 @@ import { useFrame } from "@react-three/fiber";
 import { Edges } from "@react-three/drei";
 import * as THREE from "three";
 import { CEILING, DOORS, ROOMS, type Door, type Room } from "./plan-data";
-import { doorMotion, walls, wx, wz, type Wall } from "./geometry";
+import { doorMotion, splitWall, walls, wx, wz, type Wall } from "./geometry";
 import { usePlan } from "./store";
 import { Furniture } from "./furniture";
 
@@ -80,23 +80,7 @@ function prism(axis: "h" | "v", a0: number, a1: number, f0: number, f1: number, 
 }
 
 function WallSolid({ wall, height }: { wall: Wall; height: number }) {
-  const cuts = [...wall.openings].sort((a, b) => a.a0 - b.a0);
-  const solids: { a0: number; a1: number; y0: number; y1: number }[] = [];
-  const glasses: { a0: number; a1: number; y0: number; y1: number }[] = [];
-  let cursor = wall.a0;
-  for (const o of cuts) {
-    const s0 = Math.max(o.a0, wall.a0);
-    const s1 = Math.min(o.a1, wall.a1);
-    if (s1 - s0 < 20) continue;
-    if (s0 > cursor + 8) solids.push({ a0: cursor, a1: s0, y0: 0, y1: height });
-    const head = Math.min(o.head, height);
-    const sill = Math.min(o.sill, head);
-    if (sill > 0.02) solids.push({ a0: s0, a1: s1, y0: 0, y1: sill });
-    if (height > head + 0.02) solids.push({ a0: s0, a1: s1, y0: head, y1: height });
-    if (o.kind === "window" && head - sill > 0.08) glasses.push({ a0: s0, a1: s1, y0: sill, y1: head });
-    cursor = Math.max(cursor, s1);
-  }
-  if (wall.a1 > cursor + 8) solids.push({ a0: cursor, a1: wall.a1, y0: 0, y1: height });
+  const { solids, glasses } = splitWall(wall, height);
   const color = wall.kind === "ext" ? "#e4ddd0" : wall.kind === "stub" ? "#ddd6c8" : "#f4f1ea";
   const midF = (wall.f0 + wall.f1) / 2;
   return (
@@ -145,7 +129,7 @@ function WallSolid({ wall, height }: { wall: Wall; height: number }) {
   );
 }
 
-function SwingDoor({ door, height }: { door: Door; height: number }) {
+export function SwingDoor({ door, height }: { door: Door; height: number }) {
   const ref = useRef<THREE.Group>(null);
   const motion = useMemo(() => doorMotion(door), [door]);
   const amount = useRef(usePlan.getState().doors[door.id] ?? 0);
@@ -176,7 +160,7 @@ function SwingDoor({ door, height }: { door: Door; height: number }) {
   );
 }
 
-function SlideDoor({ door, height }: { door: Door; height: number }) {
+export function SlideDoor({ door, height }: { door: Door; height: number }) {
   const ref = useRef<THREE.Group>(null);
   const amount = useRef(usePlan.getState().doors[door.id] ?? 0);
   useFrame((_, dt) => {
