@@ -16,6 +16,7 @@
     "decor:dev": "vite --config vite.decor.config.ts --open /decor.html",
     "decor:build": "node scripts/build-decor.mjs",
     "decor:shots": "node scripts/decor-shots.mjs",
+    "walk:export": "node scripts/export-walk.mjs",
     "typecheck": "tsc --noEmit",
     "board:crop": "python3 boards/scripts/crop.py",
     "board:check": "node boards/scripts/check.mjs --mutate",
