@@ -32,7 +32,7 @@ const data = {
   hall: HALL,
   rooms: ROOMS.map(({ id, name, zone, label, poly, glass, main }) => ({ id, name, zone, label, poly, glass, main })),
   walls: walls(),
-  doors: DOORS.map(({ id, name, kind, axis, j, w, into, width, head }) => ({ id, name, kind, axis, j, w, into: into ?? null, width, head })),
+  doors: DOORS.map(({ id, name, kind, axis, j, w, into, width, head, where, how }) => ({ id, name, kind, axis, j, w, into: into ?? null, width, head, where, how })),
   items: items.map(({ key, room, level, name, model, variant, x, y, w, d, h, z, mount, facing, mats }) => ({
     key, room, level, name, model, variant: variant ?? null, x, y, w, d, h, z, mount, facing, mats,
   })),
