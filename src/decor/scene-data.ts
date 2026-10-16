@@ -426,6 +426,11 @@ function finish(scheme: BScheme, stage: Stage, opts: BuildOpts, items: Draft[], 
     const extra = meta.get(it.key);
     it.facing = facingOf(it, polyOf(it.room), others, kind, extra?.tuck ?? it.tuck, Boolean(extra?.seat ?? it.seat));
   }
+  for (const it of kept) {
+    // 收纳墙门朝西，与 living-schemes 的 access.side 一致。储物墙长边朝南，对着入户。
+    if (it.key === "storage") it.facing = "w";
+    if (it.key === "store") it.facing = "s";
+  }
   if (opts.blankSoftSrc) {
     const soft = kept.find((it) => it.src.kind === "soft");
     if (soft) soft.src = { kind: "soft", id: "" };

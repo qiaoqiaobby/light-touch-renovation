@@ -1,5 +1,6 @@
-import { useMemo, type ReactElement } from "react";
+import { useEffect, useMemo, type ReactElement } from "react";
 import * as THREE from "three";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { DecorItem } from "../types";
 import { mat } from "../materials";
 import { useDecor } from "../store";
@@ -321,10 +322,49 @@ function ShelfWall({ item }: { item: DecorItem }) {
 
 function StorageWall({ item }: { item: DecorItem }) {
   const { w, d, h } = dims(item);
+  const body = item.mats.body;
+  const door = item.mats.door ?? body;
+  const frame = item.mats.frame ?? door;
+  const tambour = item.variant === "tambour";
+  const kick = 0.06;
+  const innerH = Math.max(0.2, h - kick);
+  const slats = useMemo(() => {
+    if (!tambour) return null;
+    const n = Math.max(8, Math.min(24, Math.round(w / 0.07)));
+    const span = w * 0.92;
+    const step = span / n;
+    const slatH = innerH * 0.9;
+    const list: THREE.BufferGeometry[] = [];
+    for (let i = 0; i < n; i++) {
+      const geo = new THREE.BoxGeometry(step * 0.62, slatH, 0.018);
+      geo.translate(-span / 2 + step * (i + 0.5), kick + innerH * 0.5, d / 2 + 0.008);
+      list.push(geo);
+    }
+    const merged = list.length === 1 ? list[0] : mergeGeometries(list);
+    if (!merged) return null;
+    if (list.length > 1) list.forEach((geo) => geo.dispose());
+    return merged;
+  }, [tambour, w, d, innerH, kick]);
+  useEffect(() => () => slats?.dispose(), [slats]);
   return (
     <group>
-      <MatMesh args={[w, h - 0.05, d]} position={[0, h / 2 + 0.02, 0]} spec={item.mats.body} radius={0.004} />
-      <MatMesh args={[w * 0.94, h * 0.86, 0.01]} position={[0, h * 0.52, d / 2]} spec={item.mats.door ?? item.mats.frame ?? item.mats.body} />
+      <MatMesh args={[w, innerH, d]} position={[0, kick + innerH / 2, 0]} spec={body} radius={0.004} />
+      {tambour ? (
+        <>
+          <MatMesh args={[w * 0.94, innerH * 0.92, 0.008]} position={[0, kick + innerH * 0.5, d / 2 - 0.012]} spec={body} />
+          {slats ? (
+            <mesh geometry={slats} receiveShadow>
+              <primitive object={mat(door)} attach="material" />
+            </mesh>
+          ) : null}
+        </>
+      ) : (
+        <>
+          <MatMesh args={[w * 0.98, innerH * 0.96, 0.01]} position={[0, kick + innerH * 0.5, d / 2 - 0.006]} spec={frame} />
+          <MatMesh args={[w * 0.46, innerH * 0.86, 0.012]} position={[-w * 0.22, kick + innerH * 0.5, d / 2 + 0.002]} spec={body} />
+          <MatMesh args={[w * 0.46, innerH * 0.86, 0.018]} position={[w * 0.2, kick + innerH * 0.5, d / 2 + 0.012]} spec={body} />
+        </>
+      )}
     </group>
   );
 }
