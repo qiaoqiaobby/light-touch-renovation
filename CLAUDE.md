@@ -19,6 +19,7 @@
 | `docs/plan/客厅三方案并入复尺-对抗审查-202610120646.md` | 减 / 分 / 空按复尺重摆的审查记录 | 改 `living-schemes.ts` 前先读。观看距离、西侧通道、幕布距离的允许区间写在 `scheme-audit.ts`，不要改回方案页的旧句子 |
 | `DESIGN.md` | 方案对比页的 UI 规范 | 改 `viz/` 的界面前先读；那两页的视觉数值只来自 `viz/src/tokens.css` |
 | `ROADMAP.md` | 项目真实进度源 | 每次完成调研、决策、产出后同步更新 |
+| `E:\code\GitHub\light-touch-walk`（独立仓库） | 滚动漫游页，Lovable 创建并与它的 `main` 双向同步 | 那边只负责呈现，几何以本仓库为准。数据从本仓库单向导出成那边的 `src/walk/data/house.json`，导出脚本待建。不在本仓库里写漫游代码，也不让那边改几何 |
 
 ## 工作方式
 
