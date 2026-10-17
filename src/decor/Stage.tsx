@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, type ReactNode } from "react";
 import { Canvas } from "@react-three/fiber";
 import * as THREE from "three";
 import { DOORS } from "../floorplan/plan-data";
@@ -12,7 +12,8 @@ import { runtime } from "./runtime";
 import { buildScene } from "./scene-data";
 import { useDecor } from "./store";
 
-export function Stage() {
+/** children 插进画布内部，交付页用它挂首帧回调。 */
+export function Stage({ children }: { children?: ReactNode }) {
   const scheme = useDecor((s) => s.scheme);
   const stage = useDecor((s) => s.stage);
   const scene = useDecor((s) => s.scene);
@@ -49,6 +50,7 @@ export function Stage() {
       <Items items={built.items} />
       <Post />
       <ViewRig />
+      {children}
     </Canvas>
   );
 }

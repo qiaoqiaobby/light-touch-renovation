@@ -1,10 +1,12 @@
+import type { ReactNode } from "react";
 import { Canvas } from "@react-three/fiber";
 import * as THREE from "three";
 import { usePlan } from "./store";
 import { House } from "./House";
 import { CameraDirector, Lighting, WalkRig } from "./rigs";
 
-export function Stage() {
+/** children 插进画布内部，交付页用它挂首帧回调。 */
+export function Stage({ children }: { children?: ReactNode }) {
   return (
     <Canvas
       className="h-full w-full"
@@ -26,6 +28,7 @@ export function Stage() {
       <House />
       <CameraDirector />
       <WalkRig />
+      {children}
     </Canvas>
   );
 }

@@ -387,14 +387,16 @@ function Piece({ f }: { f: Furn }) {
 
 export function Furniture() {
   const on = usePlan((s) => s.furniture);
+  const others = usePlan((s) => s.others);
   const scheme = usePlan((s) => s.scheme);
   const scene = usePlan((s) => s.scene);
   const items = useMemo(() => {
-    if (scheme === "show") return FURNITURE;
+    const rest = others ? FURNITURE.filter((f) => f.room !== "L") : [];
+    if (scheme === "show") return others ? FURNITURE : FURNITURE.filter((f) => f.room === "L");
     const plan = SCHEMES.find((s) => s.id === scheme);
     const living = plan ? resolvePieces(plan, scene).map(toFurn) : [];
-    return [...FURNITURE.filter((f) => f.room !== "L"), ...living];
-  }, [scheme, scene]);
+    return [...rest, ...living];
+  }, [others, scheme, scene]);
   if (!on) return null;
   return (
     <group>

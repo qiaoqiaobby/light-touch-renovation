@@ -11,6 +11,8 @@ type PlanState = {
   mode: ViewMode;
   section: boolean;
   furniture: boolean;
+  /** 客厅以外房间的示意家具。交付页的客厅布局图关掉它，免得和风格方案的卧室摆放打架。 */
+  others: boolean;
   labels: boolean;
   night: boolean;
   hour: number;
@@ -40,6 +42,7 @@ export const usePlan = create<PlanState>((set, get) => ({
   mode: "orbit",
   section: true,
   furniture: true,
+  others: true,
   labels: true,
   night: false,
   hour: 11,

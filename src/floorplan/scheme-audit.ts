@@ -4,7 +4,8 @@
  */
 import { ROOMS } from "./plan-data";
 import { pointInPoly } from "./geometry";
-import { HALL, SCENES, SCHEMES, resolvePieces, type Piece, type Scene } from "./living-schemes";
+import { SCENES, SCHEMES, resolvePieces, type Piece, type Scene } from "./living-schemes";
+import { screenGap, throwDistance, viewDistance, westAisle } from "./scheme-metrics";
 
 const poly = ROOMS.find((r) => r.id === "L")!.poly;
 
@@ -141,26 +142,6 @@ export function layoutProblems(items: Piece[], zone?: { x: number; y: number; w:
   return problems;
 }
 
-function viewDistance() {
-  const movie = resolvePieces(SCHEMES[0], "movie");
-  const sofa = movie.find((p) => p.id === "sofa")!;
-  const scr = movie.find((p) => p.id === "screen")!;
-  return sofa.x - (scr.x + scr.w);
-}
-
-function westAisle() {
-  const daily = resolvePieces(SCHEMES[1], "daily");
-  const sofa = daily.find((p) => p.id === "sofa")!;
-  return sofa.x - HALL.west;
-}
-
-function screenGap() {
-  const movie = resolvePieces(SCHEMES[1], "movie");
-  const sofa = movie.find((p) => p.id === "sofa")!;
-  const scr = movie.find((p) => p.id === "screen")!;
-  return scr.y - (sofa.y + sofa.d);
-}
-
 export function runSchemeAudit() {
   const lines: string[] = [];
   const emptyMiss = reachable([]);
@@ -196,10 +177,7 @@ export function runSchemeAudit() {
   if (!caught.some((p) => p.includes("不在房间内"))) throw new Error("变异未捕获：墙外块");
   lines.push(`方案一观看距离 ${view} mm`);
   lines.push(`方案二西侧通道 ${aisle} mm`);
-  const s3 = resolvePieces(SCHEMES[2], "movie");
-  const daybed = s3.find((p) => p.id === "daybed")!;
-  const wall = s3.find((p) => p.id === "screen")!;
-  const throw3 = daybed.x - (wall.x + wall.w);
+  const throw3 = throwDistance();
   lines.push(`方案二幕布距离 ${gap} mm`);
   lines.push(`方案三投影距离 ${throw3} mm`);
   lines.push("变异 1 项：墙外块被「在房间内」捕获");
