@@ -2,6 +2,8 @@
 
 住宅微改设计工作空间。输入是房屋现状（VR 全景、户型图、净尺寸核算）和居住者需求，产出是按 `promept.md` 方法论推导的微改方案，以及两套可视化：离线方案页（`viz/`）和户型三维（`src/floorplan/`）。两套几何各有来源，不能互相抄坐标。当前项目是一位新业主的住宅，进度见 `ROADMAP.md`。
 
+给客户的交付物只有一个：住宅微改提案 `docs/plan/住宅微改提案-*.html`（源码 `src/present/`）。用户是设计交付方，业主是客户。其余页面都是设计方的内部工作稿或归档，不直接发给客户。
+
 ## 目录约定
 
 | 路径 | 用途 | 规则 |
@@ -12,6 +14,9 @@
 | `mid/` | 过程文件：全景展开图、提取脚本、截图、中间计算 | 可随时重新生成，不作为交付依据，不入库 |
 | `viz/` | 方案对比的 3D 源码：`src/` 为页面一（第一组三方案），`src/creative/` 为页面二（创意三方案，含机构数据层 `rig.js`）；`src/house.js` 为两页共用的其他房间外壳（只建模不做设计）；`scripts/` 为校验、构建、截图、变异测试脚本 | 几何与家具数据只改 `geometry.js`、`house.js` 与各页的 `schemes.js`，改后先跑 `npm run validate`；构建用 `node viz/scripts/build.mjs <时间戳> basic\|creative` |
 | `src/floorplan/` | 户型三维：复尺整屋模型，含鸟瞰、俯视、漫游，以及客厅三方案（减 / 分 / 空） | 轮廓、门和示意家具只改 `plan-data.ts`，墙体只改 `geometry.ts`，三方案摆放只改 `living-schemes.ts`。改后跑 `npm run audit:plan`。卧室家具是放得下的示意，不是上一任住户的物品，也不是方案 |
+| `src/present/`、`present.html` | 住宅微改提案（交付页）：按客户的决策顺序编章，复用户型引擎、装修引擎和拼贴数据 | 改前先读 `DESIGN.md` 第 10 节。只读数据，不改几何和方案坐标；视觉数值只来自 `src/present/tokens.css`。`npm run present:dev` 开发，`npm run present:build` 构建（先跑全部审查和 `present:lint`），`npm run present:shots` 截图检查 |
+| `src/decor/`、`decor.html` | 全屋三维装修引擎（四套风格 × L0–L3），独立页是内部工作稿 | 坐标只读客厅方案和拼贴板数据，改后跑 `npm run decor:audit -- --mutate` |
+| `boards/` | 四套风格的数据（`data/`）与检查（`scripts/check.mjs`）；数据组装在 `scripts/board-data.mjs`，拼贴板页面与交付页共用 | 改数据后跑 `npm run board:check`。`boards/src/main.js` 已冻结，拼贴与平面的渲染以交付页 `src/present/board/` 为准 |
 | `scripts/audit-plan.mjs` | 户型三维检查 | `npm run audit:plan`。先查轮廓，再查减 / 分 / 空 的 15 个使用状态 |
 | `src/styles.css` | 户型三维的界面色和字体 | 只服务户型三维。色值写在本文件的 `@theme`，不走 `viz/src/tokens.css` |
 | `index.html` | 户型三维入口 | `npm run dev:plan` 开发，`npm run build:plan` 构建，`npm run typecheck` 做类型检查。这是 Vite 应用，不是 `file://` 单页 |
@@ -37,7 +42,7 @@ VR 全景是上一任住户在 2026-09 拍摄的状态，画面中的家具、�
 
 ## 可视化产出
 
-离线方案页（`viz/`）是正式交付物。动手前先读取 `~/.claude/DESIGN.md` 完成设计宣读；项目内已有 `DESIGN.md` 与 `viz/src/tokens.css`。这两页是单文件离线 HTML，可通过 `file://` 直接打开，不依赖网络。平面图须按该页自己的几何绘制，不得为画面好看扭曲尺度。第一组是减 / 分 / 空，第二组是墙 / 台 / 动。改 `viz/` 的几何后跑 `npm run validate`。这六套离线页仍是 14 mm/px 旧壳，其中减 / 分 / 空的开间、幕布尺寸和通道宽度不要当成复尺结果。
+离线方案页（`viz/`）已归档，不再发给客户；客户只拿住宅微改提案。改任何页面的界面前先读取 `~/.claude/DESIGN.md` 完成设计宣读；项目内已有 `DESIGN.md` 与 `viz/src/tokens.css`。这两页是单文件离线 HTML，可通过 `file://` 直接打开，不依赖网络。平面图须按该页自己的几何绘制，不得为画面好看扭曲尺度。第一组是减 / 分 / 空，第二组是墙 / 台 / 动。改 `viz/` 的几何后跑 `npm run validate`。这六套离线页仍是 14 mm/px 旧壳，其中减 / 分 / 空的开间、幕布尺寸和通道宽度不要当成复尺结果。
 
 户型三维是另一套交付，入口 `index.html`。它包含复尺现状壳，以及按复尺重摆的减 / 分 / 空。墙 / 台 / 动不在这套模型里。方案页里的 90 寸、西侧通道约 1.8 m、约 80 寸投影，在户型三维里不成立；现行数字以审查记录为准：65 寸、观看距离 2372 mm、西侧通道 964 mm、幕布距离 1560 mm、投影约 55 寸（2430 mm）。从 `viz/src/schemes.js` 把坐标抄进 `living-schemes.ts` 会穿墙。若要把离线方案页也改成复尺，单独重建，并重写它的校验，不要在户型三维里顺手改 `viz/`。
 

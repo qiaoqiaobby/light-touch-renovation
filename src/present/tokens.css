@@ -1,0 +1,116 @@
+/* 页面五（住宅微改提案）的 design tokens：唯一的视觉数值来源，语义见 DESIGN.md 第 10.3 节 */
+:root {
+  /* 色彩：中性灰阶，没有状态色 */
+  --p-bg: #ffffff;
+  --p-panel: #f5f5f5;
+  --p-hover: #ededed;
+  --p-press: #e0e0e0;
+  --p-rule: #d4d4d4;
+  --p-rule-strong: #171717;
+  --p-text: #171717;
+  --p-text-2: #525252;
+  --p-text-disabled: #a3a3a3;
+  --p-sel-bg: #171717;
+  --p-sel-hover: #404040;
+  --p-sel-press: #0a0a0a;
+  --p-sel-text: #fafafa;
+  --p-focus: #171717;
+  --p-stage: #e8e8e8;
+
+  /* 平面图 */
+  --p-plan-room: #ffffff;
+  --p-plan-line: #404040;
+  --p-plan-fixed: #a3a3a3;
+  --p-plan-plain: #e5e5e5;
+  --p-plan-dim: #171717;
+  --p-plan-hot-w: 3;
+  --p-plan-soft-opacity: 0.35;
+  --p-dash-door: 4 3;
+  --p-dash-soft: 5 3;
+  --p-dash-air: 3 3;
+
+  /* 改动层级：明度递进，L4 另加虚线边框 */
+  --p-lv0-bg: transparent;
+  --p-lv0-text: #171717;
+  --p-lv1-bg: #ededed;
+  --p-lv1-text: #171717;
+  --p-lv2-bg: #b5b5b5;
+  --p-lv2-text: #171717;
+  --p-lv3-bg: #404040;
+  --p-lv3-text: #fafafa;
+  --p-lv4-bg: #171717;
+  --p-lv4-text: #fafafa;
+
+  /* 风格配比条 */
+  --p-mix-1: #404040;
+  --p-mix-2: #8a8a8a;
+  --p-mix-3: #c4c4c4;
+
+  /* 间距：4px 基数，后两档只用于章与章之间 */
+  --p-s1: 4px;
+  --p-s2: 8px;
+  --p-s3: 12px;
+  --p-s4: 16px;
+  --p-s5: 24px;
+  --p-s6: 32px;
+  --p-s7: 48px;
+  --p-s8: 64px;
+  --p-s9: 96px;
+
+  /* 线与圆角：圆角只给控件 */
+  --p-radius: 4px;
+  --p-line: 1px;
+  --p-line-strong: 2px;
+  --p-focus-w: 2px;
+  --p-focus-offset: 2px;
+
+  /* 字阶 */
+  --p-font: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Hiragino Sans GB", sans-serif;
+  --p-fs-caption: 12px;
+  --p-fs-small: 14px;
+  --p-fs-body: 16px;
+  --p-fs-h3: 20px;
+  --p-fs-h2: 28px;
+  --p-fs-display: 40px;
+  --p-fw-regular: 400;
+  --p-fw-medium: 500;
+  --p-fw-bold: 600;
+  --p-lh-display: 1.25;
+  --p-lh-h2: 1.35;
+  --p-lh-h3: 1.4;
+  --p-lh-body: 1.75;
+  --p-lh-small: 1.6;
+  --p-lh-caption: 1.5;
+
+  /* 布局 */
+  --p-rail-w: 232px;
+  --p-main-max: 1040px;
+  --p-measure: 40em;
+  --p-ctl-h: 36px;
+  --p-ctl-h-touch: 44px;
+  --p-fig-ratio: 16 / 10;
+  --p-fig-ratio-narrow: 4 / 5;
+  --p-tile-col: 168px;
+  --p-pick-col: 148px;
+  --p-compare-col: 220px;
+  --p-swatch: 24px;
+  --p-swatch-lg: 40px;
+  --p-badge: 20px;
+  --p-mix-h: 8px;
+  --p-plan-max-h: 72vh;
+  --p-topbar-h: 56px;
+  --p-full-h: 100vh;
+  --p-drawer-max-h: 70vh;
+  --p-dt-w: 8em;
+  --p-tool-name-w: 3em;
+  --p-num-col: 1.5em;
+  --p-dim-opacity: 0.55;
+
+  /* 动效：只用于 color 与 background-color */
+  --p-dur: 120ms;
+  --p-ease: ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --p-dur: 0ms; }
+}

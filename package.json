@@ -21,7 +21,12 @@
     "board:crop": "python3 boards/scripts/crop.py",
     "board:check": "node boards/scripts/check.mjs --mutate",
     "board:build": "node boards/scripts/build.mjs",
-    "board:shots": "node boards/scripts/shots.mjs"
+    "board:shots": "node boards/scripts/shots.mjs",
+    "present:dev": "vite --config vite.present.config.ts --open /present.html",
+    "present:build": "node scripts/build-present.mjs",
+    "present:lint": "node scripts/present-lint.mjs",
+    "present:shots": "node scripts/present-shots.mjs",
+    "check": "npm run audit:plan && npm run board:check && npm run decor:audit -- --mutate && npm run typecheck && npm run present:lint"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",
