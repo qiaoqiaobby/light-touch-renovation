@@ -10,6 +10,7 @@
 - 2026-10-17：为交付页抽出共享层（commit `40e015c`）：客厅关键距离移到 `src/floorplan/scheme-metrics.ts`，拼贴数据组装移到 `boards/scripts/board-data.mjs`，单文件内联移到 `scripts/lib/inline-html.mjs`，装修页哈希同步挪到入口；户型 store 加 `others` 和 `houseDist`（默认值保持户型三维原样），两个 Stage 加 `children` 插槽。拼贴板重新构建后逐字节一致。
 - 2026-10-17：拼贴数据里两处用第三人称称呼业主的文字改成中性说法（席地卧室 A 低床、暖古典的代价）。拼贴板页面除这两处外逐字节不变。
 - 2026-10-17：本机 `npm install` 补齐了 typescript，`npm run typecheck` 能跑了。
+- 2026-10-17：经用户批准删除：`docs/plan/` 里 4 份全屋三维装修的中间构建（202610151317 / 1323 / 1332 / 1353，保留被审查文档引用的 1414 和现行的 1708）；漫游迁到 `light-touch-walk` 后留下的 `walk/`、`scripts/walk-prepare.mjs`、`scripts/walk-serve.mjs`（只互相引用，没有 npm 入口）；本地 10-12 的旧构建 `dist/`。删除前确认仓库内没有其他引用，`walk:export` 不依赖它们。
 
 - 2026-10-16：加了 `npm run walk:export`（`scripts/export-walk.mjs` + `scripts/export-walk.ts`）。它先跑 `audit:plan`，再把复尺几何（房间、墙段与洞口、门）和素木 L2 的客厅布置导出到 `light-touch-walk/src/walk/data/house.json`，并记下来源 commit。漫游页方向一（一条长轴、素木）的第一个检查点就用这份快照，进度看那边的 `ROADMAP.md`。
 - 2026-10-16：决定把 casa-serra 式的滚动漫游页放在单独的仓库 `light-touch-walk`。这个仓库由 Lovable 创建，用 TanStack Start，与 Lovable 双向同步。Lovable 官方文档写明不能导入已有仓库，所以不改造本仓库。本仓库仍是几何的权威，数据单向导出到那边。分工写进了 `CLAUDE.md`。那个仓库已经有自己的 `CLAUDE.md` 和 `ROADMAP.md`。
@@ -43,7 +44,6 @@
 
 - 交付：用户把 `docs/plan/住宅微改提案-202610170831.html` 发给业主（对外分享，用户本人执行）。提醒业主用电脑浏览器打开，并把第 8 章的结果文字发回。
 - 收到结果后：按 10 点权重和各改动的现状评分算优先级。现状评分还没做，需要先按 `promept.md` 第八节补诊断评分。
-- 待用户批准的删除项：`docs/plan/` 里 4 份中间构建（`全屋三维装修-202610151317 / 1323 / 1332 / 1353.html`，仓库内无引用）；漫游迁走后的遗留 `walk/`、`scripts/walk-prepare.mjs`、`scripts/walk-serve.mjs`；本地 `dist/`。
 - 漫游页：方向一已选定，第一个检查点在 `light-touch-walk` 做。以后改了几何或素木布置，要重跑 `npm run walk:export`，再到那边提交新快照。
 
 0. 业主在交付页第 3 章盲选 3–5 块拼贴（每套 8 块的均衡池），再看第 5、6 章选风格方向。方向定下之后，再决定要不要把落选的方案从交付页拿掉。
