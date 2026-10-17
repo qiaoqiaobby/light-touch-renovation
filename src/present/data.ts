@@ -66,7 +66,7 @@ export const cropOf = (id: string) => CROPS[id];
 /** 布局的全称：减 / 分 / 空首次出现时用。 */
 export const LAYOUT_NAMES: Record<LayoutId, { short: string; full: string }> = {
   s1: { short: "减", full: "减：沿原来的轴线，少放东西" },
-  s2: { short: "分", full: "分：用书架把客厅分成两段" },
+  s2: { short: "分", full: "分：用书架把客厅分成三段" },
   s3: { short: "空", full: "空：把中段留给席地和运动" },
 };
 
@@ -104,6 +104,5 @@ export function levelCounts(s: BScheme) {
   return n;
 }
 
-export type { LayoutId as Layout };
 export const sceneLabel = (id: Scene) => SCENES.find((s) => s.id === id)?.label ?? id;
 export const layoutPieces = (id: LayoutId, scene: Scene): Piece[] => resolvePieces(layoutOf(id), scene);

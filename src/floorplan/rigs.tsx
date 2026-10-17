@@ -83,9 +83,9 @@ export function Lighting() {
 
 type Pose = { p: THREE.Vector3; t: THREE.Vector3 };
 
-function poseFor(mode: "orbit" | "top", id: string | null): Pose {
+function poseFor(mode: "orbit" | "top", id: string | null, houseDist: number): Pose {
   let t = new THREE.Vector3(0, 0.35, 0);
-  let dist = 16.2;
+  let dist = houseDist;
   if (id && id !== "all") {
     const r = ROOMS.find((room) => room.id === id);
     if (r) {
@@ -98,7 +98,7 @@ function poseFor(mode: "orbit" | "top", id: string | null): Pose {
       dist = size * 1.2 + 2.6;
     }
   }
-  if (mode === "top") return { p: new THREE.Vector3(t.x, id && id !== "all" ? dist : 18, t.z + 0.02), t };
+  if (mode === "top") return { p: new THREE.Vector3(t.x, id && id !== "all" ? dist : houseDist + 1.8, t.z + 0.02), t };
   const dir = new THREE.Vector3(0.58, 0.74, 0.48).normalize();
   return { p: t.clone().addScaledVector(dir, dist), t };
 }
@@ -120,7 +120,7 @@ export function CameraDirector() {
     }
     if (seen.current !== key && controls) {
       seen.current = key;
-      const pose = poseFor(mode === "top" ? "top" : "orbit", focus?.id ?? null);
+      const pose = poseFor(mode === "top" ? "top" : "orbit", focus?.id ?? null, usePlan.getState().houseDist);
       const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       anim.current = {
         t: 0,

@@ -163,7 +163,7 @@ img { display: block; max-width: 100%; height: auto; }
 .lv.L1 { background: var(--p-lv1-bg); color: var(--p-lv1-text); border-color: var(--p-lv1-bg); }
 .lv.L2 { background: var(--p-lv2-bg); color: var(--p-lv2-text); border-color: var(--p-lv2-bg); }
 .lv.L3 { background: var(--p-lv3-bg); color: var(--p-lv3-text); border-color: var(--p-lv3-bg); }
-.lv.L4 { background: var(--p-lv4-bg); color: var(--p-lv4-text); border-style: dashed; border-color: var(--p-bg); }
+.lv.L4 { background: var(--p-lv4-bg); color: var(--p-lv4-text); border-color: var(--p-lv4-bg); outline: var(--p-line) dashed var(--p-lv4-bg); outline-offset: var(--p-focus-offset); }
 .counts { display: inline-flex; flex-wrap: wrap; gap: var(--p-s1) var(--p-s3); align-items: center; font-size: var(--p-fs-caption); line-height: var(--p-lh-caption); }
 
 /* ---------- 现状硬装色块 ---------- */
@@ -237,6 +237,99 @@ img { display: block; max-width: 100%; height: auto; }
 .plan-svg .label, .plan-svg .dim-t { paint-order: stroke; stroke: var(--p-plan-room); stroke-linejoin: round; }
 .plan-svg [data-piece] { cursor: pointer; }
 
+/* ---------- 读屏专用 ---------- */
+.sr-only { position: absolute; width: var(--p-line); height: var(--p-line); margin: calc(-1 * var(--p-line)); padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* ---------- 通用小件 ---------- */
+.h4 { font-size: var(--p-fs-body); line-height: var(--p-lh-h3); font-weight: var(--p-fw-bold); }
+.prose-p { max-width: var(--p-measure); }
+.plain-list { display: grid; gap: var(--p-s2); }
+.chip { font-size: var(--p-fs-caption); line-height: var(--p-lh-caption); border: var(--p-line) solid var(--p-rule); border-radius: var(--p-radius); padding: 0 var(--p-s2); color: var(--p-text-2); }
+.chip.strong { border-color: var(--p-text); color: var(--p-text); }
+.name-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--p-s2) var(--p-s3); }
+.tools-row { display: flex; flex-wrap: wrap; gap: var(--p-s3); }
+.reveal > .btn, .block > .btn, .chapter > .btn { justify-self: start; }
+.note, .result {
+  width: 100%; padding: var(--p-s3); font: inherit; color: var(--p-text); background: var(--p-bg);
+  border: var(--p-line) solid var(--p-rule); border-radius: var(--p-radius); resize: vertical;
+  transition: background-color var(--p-dur) var(--p-ease);
+}
+.note:hover { background: var(--p-panel); }
+.result { font-size: var(--p-fs-small); line-height: var(--p-lh-small); background: var(--p-panel); }
+
+/* ---------- 第 3 章：盲选与 10 点 ---------- */
+.pick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--p-pick-col), 1fr)); gap: var(--p-s2); }
+.pick {
+  position: relative; display: block; padding: 0; aspect-ratio: var(--p-pick-ratio); overflow: hidden;
+  background: var(--p-panel); border: var(--p-line-strong) solid transparent; cursor: pointer;
+  transition: background-color var(--p-dur) var(--p-ease);
+}
+.pick img { width: 100%; height: 100%; object-fit: cover; }
+.pick:hover { border-color: var(--p-rule); }
+.pick:active { background: var(--p-press); }
+.pick[aria-pressed="true"] { border-color: var(--p-rule-strong); }
+.pick:disabled { cursor: not-allowed; }
+.pick:disabled:not(.shown) img { opacity: var(--p-blocked); }
+.pick.shown:disabled { cursor: default; }
+.pick.faded img { opacity: var(--p-faded); }
+.pick-no, .pick-tag { position: absolute; font-size: var(--p-fs-caption); line-height: var(--p-lh-caption); }
+.pick-no { top: var(--p-s1); left: var(--p-s1); min-width: var(--p-badge); height: var(--p-badge); line-height: var(--p-badge); text-align: center; border-radius: var(--p-badge); background: var(--p-sel-bg); color: var(--p-sel-text); }
+.pick-tag { left: 0; right: 0; bottom: 0; padding: var(--p-s1) var(--p-s2); text-align: left; background: var(--p-bg); color: var(--p-text); }
+.pick-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p-s3) var(--p-s4); }
+.pick-bar b { font-weight: var(--p-fw-bold); }
+.reveal { display: grid; gap: var(--p-s4); padding-top: var(--p-s5); border-top: var(--p-line-strong) solid var(--p-rule-strong); }
+.tally { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--p-s5); }
+.tally li { display: grid; gap: var(--p-s1); align-content: start; }
+.tally-n { font-size: var(--p-fs-display); line-height: var(--p-lh-display); font-weight: var(--p-fw-bold); color: var(--p-text-2); }
+.tally .lead-col .tally-n { color: var(--p-text); }
+.tally-name { font-weight: var(--p-fw-medium); }
+.points { display: grid; border-top: var(--p-line) solid var(--p-rule); }
+.points li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--p-s2) var(--p-s4); align-items: center; padding: var(--p-s3) 0; border-bottom: var(--p-line) solid var(--p-rule); }
+.pt-name { display: grid; }
+.pt-name b { font-weight: var(--p-fw-medium); }
+.pt-ctl { display: flex; align-items: center; gap: var(--p-s2); }
+.pt-val { min-width: var(--p-s6); text-align: center; font-size: var(--p-fs-h3); line-height: var(--p-lh-h3); font-weight: var(--p-fw-bold); }
+.btn.step { width: var(--p-ctl-h); padding: 0; font-size: var(--p-fs-h3); }
+.pt-meter { grid-column: 1 / -1; display: flex; gap: var(--p-s1); }
+.pt-meter i { flex: 1; height: var(--p-meter-h); background: var(--p-hover); }
+.pt-meter i.on { background: var(--p-text); }
+
+/* ---------- 第 4 章：三种布局 ---------- */
+.layout-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--p-s5); align-items: start; }
+.layout-col { display: grid; gap: var(--p-s3); align-content: start; }
+.layout-col .sub { display: grid; gap: 0; }
+.keys { display: grid; border-top: var(--p-line) solid var(--p-rule); font-size: var(--p-fs-small); line-height: var(--p-lh-small); }
+.keys > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0 var(--p-s2); padding: var(--p-s2) 0; border-bottom: var(--p-line) solid var(--p-rule); }
+.keys dt { color: var(--p-text-2); }
+.keys dd { font-weight: var(--p-fw-medium); }
+.cost { display: grid; gap: var(--p-s1); font-size: var(--p-fs-small); line-height: var(--p-lh-small); }
+.choose { display: grid; gap: var(--p-s3); padding-top: var(--p-s5); border-top: var(--p-line-strong) solid var(--p-rule-strong); }
+
+/* ---------- 第 5 章：四套风格 ---------- */
+.tabs .seg button { min-height: var(--p-ctl-h-touch); padding: 0 var(--p-s4); font-size: var(--p-fs-body); }
+.style-head { display: grid; gap: var(--p-s4); }
+.style-name { font-size: var(--p-fs-h2); line-height: var(--p-lh-h2); font-weight: var(--p-fw-bold); }
+.fig-after { display: grid; gap: var(--p-s2); padding-top: var(--p-s2); }
+.style-board { padding-top: var(--p-s5); border-top: var(--p-line-strong) solid var(--p-rule-strong); }
+.room-cols { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); }
+.sticky-plan { position: sticky; top: var(--p-s4); }
+
+/* ---------- 第 6 章：并排比较 ---------- */
+.compare th[scope="row"] { min-width: var(--p-dt-w); white-space: normal; }
+.compare td, .compare thead th + th { min-width: var(--p-compare-col); }
+.cmp-name { display: block; font-size: var(--p-fs-h3); line-height: var(--p-lh-h3); font-weight: var(--p-fw-bold); color: var(--p-text); }
+.compare td .mix, .compare td .sw-row { margin-top: var(--p-s1); }
+.compare th[scope="row"] { position: sticky; left: 0; z-index: 1; background: var(--p-bg); }
+.plan-svg.mini { max-height: var(--p-mini-plan-h); }
+
+/* ---------- 第 7、8 章 ---------- */
+.steps { display: grid; gap: var(--p-s4); max-width: var(--p-measure); }
+.steps li { display: grid; grid-template-columns: var(--p-s6) minmax(0, 1fr); gap: var(--p-s3); }
+.step-no { font-size: var(--p-fs-h3); line-height: var(--p-lh-h3); font-weight: var(--p-fw-bold); }
+.open-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(var(--p-compare-col), 1fr)); gap: var(--p-s5); }
+.open-list { display: grid; font-size: var(--p-fs-small); line-height: var(--p-lh-small); border-top: var(--p-line) solid var(--p-rule); }
+.open-list li { padding: var(--p-s2) 0; border-bottom: var(--p-line) solid var(--p-rule); }
+
 /* ---------- 窄屏：章节栏收成顶部条 ---------- */
 @media (max-width: 960px) {
   html { scroll-padding-top: var(--p-topbar-h); }
@@ -260,11 +353,24 @@ img { display: block; max-width: 100%; height: auto; }
   .fig-stage { aspect-ratio: var(--p-fig-ratio-narrow); }
   .fig-note { margin-left: 0; }
   .finish { grid-template-columns: minmax(0, 1fr); }
+  .layout-grid, .room-cols { grid-template-columns: minmax(0, 1fr); }
+  .tally { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sticky-plan { position: static; }
+  /* 第 7 章的表在窄屏按行堆叠：层级、花费、可逆性一行，「做什么」另起一行 */
+  .ladder thead { display: none; }
+  .ladder tr { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: "lv cost rev" "what what what"; gap: var(--p-s1) var(--p-s3); padding: var(--p-s3) 0; border-bottom: var(--p-line) solid var(--p-rule); }
+  .ladder td { padding: 0; border-bottom: 0; }
+  .ladder td:nth-child(1) { grid-area: lv; }
+  .ladder td:nth-child(2) { grid-area: what; }
+  .ladder td:nth-child(3) { grid-area: cost; }
+  .ladder td:nth-child(4) { grid-area: rev; }
+  .ladder td[data-label]::before { content: attr(data-label) " "; color: var(--p-text-2); }
 }
 
 /* ---------- 触屏：控件加高；画布要先点「操作三维」才接管手势 ---------- */
 @media (pointer: coarse) {
   .btn, .seg button, .rail-link { min-height: var(--p-ctl-h-touch); }
   .fig-tools .arm { display: inline-flex; }
-  .gesture[data-armed="false"] > * { pointer-events: none; }
+  /* R3F 在画布容器上写了内联 pointer-events: auto，这里必须用 !important 盖过 */
+  .gesture[data-armed="false"] > * { pointer-events: none !important; }
 }

@@ -104,7 +104,11 @@
   --p-dt-w: 8em;
   --p-tool-name-w: 3em;
   --p-num-col: 1.5em;
-  --p-dim-opacity: 0.55;
+  --p-pick-ratio: 1 / 1;
+  --p-faded: 0.35;
+  --p-blocked: 0.55;
+  --p-mini-plan-h: 240px;
+  --p-meter-h: 4px;
 
   /* 动效：只用于 color 与 background-color */
   --p-dur: 120ms;

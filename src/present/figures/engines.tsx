@@ -26,6 +26,8 @@ function FirstFrame({ onReady }: { onReady: () => void }) {
 }
 
 const nextFocus = (id: string) => ({ id, n: (usePlan.getState().focus?.n ?? 0) + 1 });
+/** 图框比全屏矮，全屋鸟瞰拉远到这个距离（米）才不裁到南端的厨房和入户。户型三维默认 16.2。 */
+const FIGURE_HOUSE_DIST = 19.5;
 
 /** 户型引擎：只显示客厅方案，卧室的示意家具关掉（others），标注和门开关都不用。 */
 export function PlanEngine({ fig, onReady }: { fig: LayoutFig; onReady: () => void }) {
@@ -47,7 +49,6 @@ export function PlanEngine({ fig, onReady }: { fig: LayoutFig; onReady: () => vo
     });
     setPrimed(true);
     // 只在挂载时初始化；之后的变化由下面的 effect 同步
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => {
     if (primed) usePlan.setState({ scheme: fig.scheme, scene: fig.scene });
@@ -69,13 +70,12 @@ export function DecorEngine({ fig, onReady }: { fig: DecorFig; onReady: () => vo
   const [primed, setPrimed] = useState(false);
   useLayoutEffect(() => {
     useDecor.getState().apply(fig);
-    usePlan.setState({ focus: nextFocus("all") });
+    usePlan.setState({ focus: nextFocus("all"), houseDist: FIGURE_HOUSE_DIST });
     setPrimed(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => {
     if (primed) useDecor.getState().apply(fig);
-  }, [primed, fig.scheme, fig.stage, fig.view, fig.light, fig.scene]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [primed, fig.scheme, fig.stage, fig.view, fig.light, fig.scene]);
   return primed ? (
     <DecorStage>
       <FirstFrame onReady={onReady} />

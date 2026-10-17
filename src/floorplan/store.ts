@@ -13,6 +13,8 @@ type PlanState = {
   furniture: boolean;
   /** 客厅以外房间的示意家具。交付页的客厅布局图关掉它，免得和风格方案的卧室摆放打架。 */
   others: boolean;
+  /** 全屋鸟瞰的相机距离（米）。交付页的图框比全屏矮，拉远一点免得裁到。 */
+  houseDist: number;
   labels: boolean;
   night: boolean;
   hour: number;
@@ -43,6 +45,7 @@ export const usePlan = create<PlanState>((set, get) => ({
   section: true,
   furniture: true,
   others: true,
+  houseDist: 16.2,
   labels: true,
   night: false,
   hour: 11,

@@ -17,8 +17,10 @@ export function inlineDist(dist, htmlName) {
     html = html.replace(/<link\b[^>]*href="\.\/assets\/[^"]+\.css"[^>]*>/, () => `<style>${style}</style>`);
   }
   html = html.replace(/<link\b[^>]*rel="modulepreload"[^>]*>/g, "");
-  if (/src=|href=|url\(/.test(html.replace(/<style>[\s\S]*<\/style>/, "").replace(/<script[\s\S]*<\/script>/, ""))) {
-    const external = html.match(/(?:src|href|url\()[^)"'\s>]*/g) ?? [];
+  // data: URI（如内联图标）不算外部引用
+  const outside = html.replace(/<style>[\s\S]*<\/style>/, "").replace(/<script[\s\S]*<\/script>/, "");
+  if (/(?:src|href)=(?!["']?data:)|url\((?!["']?data:)/.test(outside)) {
+    const external = outside.match(/(?:src|href|url\()[^)"'\s>]*/g) ?? [];
     throw new Error(`外部 URL：${external.join(", ")}`);
   }
   return html;

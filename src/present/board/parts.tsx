@@ -134,6 +134,7 @@ export function Changes({ list, current }: { list: (BChange & { room?: string })
               </td>
               <td>
                 {c.room ? <span className="caption room-tag">{c.room}</span> : null}
+                {c.room ? " " : null}
                 {c.text}
               </td>
               <td className="nowrap">{c.rev}</td>

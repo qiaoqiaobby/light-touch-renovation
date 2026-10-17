@@ -14,7 +14,7 @@
 | `mid/` | 过程文件：全景展开图、提取脚本、截图、中间计算 | 可随时重新生成，不作为交付依据，不入库 |
 | `viz/` | 方案对比的 3D 源码：`src/` 为页面一（第一组三方案），`src/creative/` 为页面二（创意三方案，含机构数据层 `rig.js`）；`src/house.js` 为两页共用的其他房间外壳（只建模不做设计）；`scripts/` 为校验、构建、截图、变异测试脚本 | 几何与家具数据只改 `geometry.js`、`house.js` 与各页的 `schemes.js`，改后先跑 `npm run validate`；构建用 `node viz/scripts/build.mjs <时间戳> basic\|creative` |
 | `src/floorplan/` | 户型三维：复尺整屋模型，含鸟瞰、俯视、漫游，以及客厅三方案（减 / 分 / 空） | 轮廓、门和示意家具只改 `plan-data.ts`，墙体只改 `geometry.ts`，三方案摆放只改 `living-schemes.ts`。改后跑 `npm run audit:plan`。卧室家具是放得下的示意，不是上一任住户的物品，也不是方案 |
-| `src/present/`、`present.html` | 住宅微改提案（交付页）：按客户的决策顺序编章，复用户型引擎、装修引擎和拼贴数据 | 改前先读 `DESIGN.md` 第 10 节。只读数据，不改几何和方案坐标；视觉数值只来自 `src/present/tokens.css`。`npm run present:dev` 开发，`npm run present:build` 构建（先跑全部审查和 `present:lint`），`npm run present:shots` 截图检查 |
+| `src/present/`、`present.html` | 住宅微改提案（交付页）：按客户的决策顺序编章，复用户型引擎、装修引擎和拼贴数据 | 改前先读 `DESIGN.md` 第 10 节。只读数据，不改几何和方案坐标；视觉数值只来自 `src/present/tokens.css`。`npm run present:dev` 开发，`npm run present:build` 构建（先跑全部审查和 `present:lint`），`npm run present:shots -- <产物路径>` 截图检查。审查记录在 `docs/plan/住宅微改提案-对抗审查-*.md` |
 | `src/decor/`、`decor.html` | 全屋三维装修引擎（四套风格 × L0–L3），独立页是内部工作稿 | 坐标只读客厅方案和拼贴板数据，改后跑 `npm run decor:audit -- --mutate` |
 | `boards/` | 四套风格的数据（`data/`）与检查（`scripts/check.mjs`）；数据组装在 `scripts/board-data.mjs`，拼贴板页面与交付页共用 | 改数据后跑 `npm run board:check`。`boards/src/main.js` 已冻结，拼贴与平面的渲染以交付页 `src/present/board/` 为准 |
 | `scripts/audit-plan.mjs` | 户型三维检查 | `npm run audit:plan`。先查轮廓，再查减 / 分 / 空 的 15 个使用状态 |

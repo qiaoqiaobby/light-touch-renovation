@@ -49,7 +49,7 @@ export const usePresent = create<State>((set, get) => ({
   active: null,
   site: { view: "orbit", light: "day" },
   layout: { scheme: "s1", scene: "daily", mode: "orbit" },
-  style: { scheme: "S1", stage: "L2", view: "L-entry", light: "day", scene: "daily", room: "house" },
+  style: { scheme: "S1", stage: "L2", view: "orbit", light: "day", scene: "daily", room: "house" },
   layoutScene: "daily",
   answers: { picked: [], revealed: false, sawStyles: false, points: { ...NO_POINTS }, layoutPref: null, note: "" },
   setChapter: (chapter) => set({ chapter }),

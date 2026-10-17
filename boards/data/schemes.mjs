@@ -365,7 +365,7 @@ export const SCHEMES = [
         ],
         pieces: [bedA({ name: '1.8 m 低床（床头板挂东墙）', h: 250, fill: C.rattan }), ...nsA({ fill: C.oldTeak }), chestA({ fill: C.oldTeak }), sillA({ fill: C.plaster })],
         changes: [
-          { level: 'L1', text: '1.8 m 低床，床面高 250，只给业主本人和伴侣用', rev: '可逆' },
+          { level: 'L1', text: '1.8 m 低床，床面高 250，只用在主卧', rev: '可逆' },
           { level: 'L2', text: '藤编床头板挂在东墙上，床架总长不超过 2000：保留西墙衣柜时，床尾才留得出 500 的通道', rev: '部分可逆' },
           { level: 'L1', text: '圆角矮柜、纸灯、藤编翻门柜、飘窗坐垫', rev: '可逆' },
           { level: 'L0', text: '西墙通顶衣柜保留', rev: '可逆' },
@@ -418,7 +418,7 @@ export const SCHEMES = [
     mix: [['古典', 50], ['中古', 30], ['波斯', 20]],
     shared: '深暖木色',
     contrast: '密集纹样对素墙',
-    cost: '主色 4 个、点缀 2 个，超过其他方案守的上限，所以放在这里作对照，用来试探业主能接受的颜色上限；纹样多，收纳一乱就显乱。',
+    cost: '主色 4 个、点缀 2 个，超过其他方案守的上限，所以放在这里作对照，用来试探能接受的颜色上限；纹样多，收纳一乱就显乱。',
     palette: {
       main: [
         { name: '象牙', hex: C.ivory, from: ['lamp-opal-208', 'chest-smile-86'] },

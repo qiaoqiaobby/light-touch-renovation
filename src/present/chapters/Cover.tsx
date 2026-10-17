@@ -1,4 +1,4 @@
-import { CEILING, ROOMS, SCHEMES, TOTAL_AREA, colouredRetained, roomOf } from "../data";
+import { CEILING, SCHEMES, TOTAL_AREA, colouredRetained, roomOf } from "../data";
 import { CHAPTERS, PRIVATE_NOTE } from "../content";
 import { scrollToChapter } from "../ui";
 
@@ -10,7 +10,7 @@ export function Cover() {
   });
   const block: { k: string; v: string }[] = [
     { k: "项目", v: "住宅微改提案" },
-    { k: "户型", v: `三室一厅一厨一卫，共 ${ROOMS.length} 间，上北下南` },
+    { k: "户型", v: "三室一厅一厨一卫，上北下南" },
     { k: "复算面积", v: `${TOTAL_AREA.toFixed(1)} ㎡` },
     { k: "客厅主体", v: `${hall} mm` },
     { k: "层高", v: `${CEILING.toFixed(2)} m（假定，待复核）` },
@@ -39,7 +39,7 @@ export function Cover() {
           {kept.map((k, i) => (
             <span key={k.name} className="tabular">
               {i ? "，" : ""}
-              {k.name} {k.n} / {k.of}
+              {k.name} {k.n}{"\u00a0/\u00a0"}{k.of}
             </span>
           ))}
           。
